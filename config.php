@@ -31,8 +31,8 @@ try {
 
 // Email configuration for development
 define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_USERNAME', 'your-email@gmail.com');
-define('SMTP_PASSWORD', 'your-app-password');
+define('SMTP_USERNAME', 'drakestates@gmail.com');
+define('SMTP_PASSWORD', 'lqqj vnug vrau dkfa');
 define('SMTP_PORT', 587);
 define('SMTP_ENCRYPTION', 'tls');
 
