@@ -1,12 +1,6 @@
 
 <?php
-// Check if we're in production (Render)
-if (getenv('RENDER')) {
-    require_once 'config.production.php';
-    return;
-}
-
-// Local development configuration
+// Database configuration
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
 define('DB_NAME', 'data_miw');
@@ -40,9 +34,6 @@ define('SMTP_ENCRYPTION', 'tls');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Jakarta');
-$db_name = getenv('DB_NAME');
-$db_user = getenv('DB_USER');
-$db_pass = getenv('DB_PASS');
 
 // SMTP Configuration
 define('SMTP_HOST', 'smtp.gmail.com');
