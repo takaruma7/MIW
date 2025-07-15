@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: miw-travel
+    env: php
+    buildCommand: composer install
+    startCommand: heroku-php-apache2
+    envVars:
+      - key: PHP_VERSION
+        value: 8.1
+  - type: mysql
+    name: miw-db
+    plan: free
+    ipAllowList: []

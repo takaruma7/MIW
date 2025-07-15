@@ -1,13 +1,45 @@
 
 <?php
-// Database configuration
+// Check if we're in production (Render)
+if (getenv('RENDER')) {
+    require_once 'config.production.php';
+    return;
+}
+
+// Local development configuration
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
 define('DB_NAME', 'data_miw');
-define('DB_USER', 'root'); // Change to your database username
-define('DB_PASS', '');     // Change to your database password
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
-$db_host = getenv('DB_HOST');
+try {
+    $conn = new PDO(
+        "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+        DB_USER,
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+} catch(PDOException $e) {
+    error_log("Connection failed: " . $e->getMessage());
+    die("Connection failed. Please try again later.");
+}
+
+// Email configuration for development
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_USERNAME', 'your-email@gmail.com');
+define('SMTP_PASSWORD', 'your-app-password');
+define('SMTP_PORT', 587);
+define('SMTP_ENCRYPTION', 'tls');
+
+// Other configurations
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+date_default_timezone_set('Asia/Jakarta');
 $db_name = getenv('DB_NAME');
 $db_user = getenv('DB_USER');
 $db_pass = getenv('DB_PASS');
