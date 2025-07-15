@@ -2,10 +2,27 @@
 // email_functions.php
 
 require_once 'config.php';
-require_once 'vendor/autoload.php'; // For PHPMailer
+require_once 'vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+
+/**
+ * Configure PHPMailer with default settings
+ */
+function configurePHPMailer() {
+    $mail = new PHPMailer(true);
+    $mail->isSMTP();
+    $mail->Host = SMTP_HOST;
+    $mail->SMTPAuth = true;
+    $mail->Username = SMTP_USERNAME;
+    $mail->Password = SMTP_PASSWORD;
+    $mail->SMTPSecure = SMTP_SECURE;
+    $mail->Port = SMTP_PORT;
+    $mail->CharSet = 'UTF-8';
+    $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
+    return $mail;
+}
 
 /**
  * Build HTML email template with styling
@@ -121,54 +138,6 @@ function buildPaymentConfirmationDetails($paymentData) {
     </table>";
     
     $content .= "<p>Bukti pembayaran terlampir dalam email ini.</p>";
-    
-    return $content;
-}
-
-/**
- * Build payment verification email content
- */
-function buildPaymentVerificationContent($paymentData) {
-    $currencySymbol = $paymentData['currency'] === 'USD' ? '$' : 'Rp';
-    $content = "<p>Halo " . htmlspecialchars($paymentData['nama']) . ",</p>";
-    $content .= "<p>Pembayaran Anda untuk program " . htmlspecialchars($paymentData['program_pilihan']) . " telah berhasil diverifikasi.</p>";
-    
-    $content .= "<h3>Detail Pembayaran</h3>";
-    $content .= "<table>
-        <tr><th width='30%'>NIK</th><td>" . htmlspecialchars($paymentData['nik']) . "</td></tr>
-        <tr><th>Jumlah Pembayaran</th><td>" . $currencySymbol . ' ' . number_format($paymentData['payment_total'], 2) . "</td></tr>";
-    
-    if ($paymentData['payment_remaining'] > 0) {
-        $content .= "<tr><th>Sisa Pembayaran</th><td>" . $currencySymbol . ' ' . number_format($paymentData['payment_remaining'], 2) . "</td></tr>";
-    }
-    
-    $content .= "</table>";
-    
-    if ($paymentData['payment_remaining'] > 0) {
-        $content .= "<p>Mohon segera melunasi sisa pembayaran untuk memastikan slot perjalanan Anda.</p>";
-    }
-    
-    $content .= "<p>Terima kasih atas kepercayaan Anda menggunakan layanan MIW Travel.</p>";
-    
-    return $content;
-}
-
-/**
- * Build payment rejection email content
- */
-function buildPaymentRejectionContent($paymentData) {
-    $content = "<p>Halo " . htmlspecialchars($paymentData['nama']) . ",</p>";
-    $content .= "<p>Mohon maaf, pembayaran Anda untuk program " . htmlspecialchars($paymentData['program_pilihan']) . " belum dapat diverifikasi.</p>";
-    
-    $content .= "<h3>Detail Pembayaran</h3>";
-    $content .= "<table>
-        <tr><th width='30%'>NIK</th><td>" . htmlspecialchars($paymentData['nik']) . "</td></tr>
-        <tr><th>Tanggal Pembayaran</th><td>" . htmlspecialchars($paymentData['payment_date']) . "</td></tr>
-        <tr><th>Waktu Pembayaran</th><td>" . htmlspecialchars($paymentData['payment_time']) . "</td></tr>
-    </table>";
-    
-    $content .= "<p>Silakan hubungi customer service kami untuk informasi lebih lanjut dan panduan pembayaran ulang.</p>";
-    $content .= "<p>Terima kasih atas pengertian Anda.</p>";
     
     return $content;
 }
@@ -336,49 +305,42 @@ function sendPaymentConfirmationEmail($paymentData, $files, $registrationType = 
 }
 
 /**
- * Send payment verification email to user
+ * Build payment verification email content
  */
-function sendPaymentVerificationEmail($paymentData, $files = []) {
-    if (!EMAIL_ENABLED) {
-        error_log("Email sending is disabled in config");
-        return false;
+function buildPaymentVerificationContent($emailData) {
+    $content = "<p>Halo " . htmlspecialchars($emailData['nama']) . ",</p>";
+    $content .= "<p>Terima kasih. Pembayaran Anda untuk program " . htmlspecialchars($emailData['program_pilihan']) . " telah diverifikasi dengan detail berikut:</p>";
+    
+    $content .= "<table style='border-collapse: collapse; width: 100%; margin: 20px 0;'>";
+    $content .= "<tr><th style='text-align: left; padding: 8px; width: 30%; border: 1px solid #ddd;'>NIK</th><td style='padding: 8px; border: 1px solid #ddd;'>" . htmlspecialchars($emailData['nik']) . "</td></tr>";
+    $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Jenis Program</th><td style='padding: 8px; border: 1px solid #ddd;'>" . htmlspecialchars($emailData['program_pilihan']) . "</td></tr>";
+    $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Total Pembayaran</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['currency'] . " " . number_format($emailData['payment_total'], 0, ',', '.') . "</td></tr>";
+    
+    if ($emailData['payment_remaining'] > 0) {
+        $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Sisa Pembayaran</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['currency'] . " " . number_format($emailData['payment_remaining'], 0, ',', '.') . "</td></tr>";
     }
-
-    try {
-        $mail = new PHPMailer(true);
-
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USERNAME;
-        $mail->Password   = SMTP_PASSWORD;
-        $mail->SMTPSecure = SMTP_SECURE;
-        $mail->Port       = SMTP_PORT;
-        $mail->CharSet    = 'UTF-8';
-
-        // Recipients
-        $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
-        $mail->addAddress($paymentData['email']);
-        $mail->addBCC(ADMIN_EMAIL);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = 'Konfirmasi Verifikasi Pembayaran - MIW Travel';
-        
-        $content = buildPaymentVerificationContent($paymentData);
-        $mail->Body = buildEmailTemplate('Verifikasi Pembayaran', $content);
-
-        return $mail->send();
-
-    } catch (Exception $e) {
-        error_log("Email sending failed: " . $e->getMessage());
-        return false;
+    
+    $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Status</th><td style='padding: 8px; border: 1px solid #ddd;'>Terverifikasi</td></tr>";
+    $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Tanggal</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['payment_date'] . "</td></tr>";
+    if (isset($emailData['payment_time'])) {
+        $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Waktu</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['payment_time'] . "</td></tr>";
     }
+    $content .= "</table>";
+    
+    $content .= "<p>Kwitansi pembayaran terlampir dalam email ini. Mohon simpan sebagai bukti pembayaran yang sah.</p>";
+    if ($emailData['payment_remaining'] > 0) {
+        $content .= "<p>Mohon segera melakukan pelunasan sesuai dengan jadwal yang telah ditentukan.</p>";
+    } else {
+        $content .= "<p>Pembayaran Anda telah lunas. Terima kasih atas kepercayaan Anda.</p>";
+    }
+    
+    return $content;
 }
 
+
+
 /**
- * Send payment rejection email to user
+ * Send rejection email to user
  */
 function sendPaymentRejectionEmail($paymentData) {
     if (!EMAIL_ENABLED) {
@@ -387,34 +349,77 @@ function sendPaymentRejectionEmail($paymentData) {
     }
 
     try {
-        $mail = new PHPMailer(true);
-
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USERNAME;
-        $mail->Password   = SMTP_PASSWORD;
-        $mail->SMTPSecure = SMTP_SECURE;
-        $mail->Port       = SMTP_PORT;
-        $mail->CharSet    = 'UTF-8';
-
-        // Recipients
-        $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
-        $mail->addAddress($paymentData['email']);
+        $mail = configurePHPMailer();
+        
+        // Add recipients
+        $mail->addAddress($paymentData['email'], $paymentData['nama']);
         $mail->addBCC(ADMIN_EMAIL);
 
-        // Content
+        // Set content
         $mail->isHTML(true);
         $mail->Subject = 'Pembayaran Tidak Dapat Diverifikasi - MIW Travel';
         
         $content = buildPaymentRejectionContent($paymentData);
         $mail->Body = buildEmailTemplate('Pembayaran Tidak Dapat Diverifikasi', $content);
+        $mail->AltBody = strip_tags($content);
 
-        return $mail->send();
-
+        $mail->send();
+        return true;
     } catch (Exception $e) {
-        error_log("Email sending failed: " . $e->getMessage());
+        error_log("Payment rejection email sending failed: " . $mail->ErrorInfo);
         return false;
     }
+}
+
+/**
+ * Send payment verification email to registrant with attachments
+ */
+function sendPaymentVerificationEmail($emailData, $attachments = []) {
+    if (!EMAIL_ENABLED) {
+        error_log("Email sending is disabled in config");
+        return true;
+    }
+
+    try {
+        $mailer = configurePHPMailer();
+        
+        $mailer->addAddress($emailData['email'], $emailData['nama']);
+        $mailer->isHTML(true);
+        $mailer->Subject = 'Konfirmasi Pembayaran - MIW Travel';
+        
+        // Build email content using the content builder
+        $content = buildPaymentVerificationContent($emailData);
+        $mailer->Body = buildEmailTemplate('Konfirmasi Pembayaran', $content);
+        
+        // Add attachments if any
+        if (!empty($attachments)) {
+            foreach ($attachments as $type => $file) {
+                if (isset($file['tmp_name'], $file['name'])) {
+                    $mailer->addAttachment($file['tmp_name'], $file['name']);
+                }
+            }
+        }
+        
+        return $mailer->send();
+    } catch (Exception $e) {
+        error_log("Error sending payment verification email: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Build payment rejection content
+ */
+function buildPaymentRejectionContent($paymentData) {
+    $content = "<p>Kepada Yth. " . htmlspecialchars($paymentData['nama']) . ",</p>";
+    
+    $content .= "<p>Mohon maaf, pembayaran Anda untuk program " . 
+                htmlspecialchars($paymentData['program_pilihan']) . 
+                " dengan tanggal keberangkatan " . 
+                date('d/m/Y', strtotime($paymentData['tanggal_keberangkatan'])) . 
+                " tidak dapat diverifikasi karena alasan tertentu.</p>";
+    
+    $content .= "<p>Anda dapat melakukan pembayaran ulang atau menghubungi kami untuk informasi lebih lanjut.</p>";
+    
+    return $content;
 }

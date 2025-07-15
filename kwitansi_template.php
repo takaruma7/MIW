@@ -32,34 +32,32 @@ $diskon = floatval($data['diskon'] ?? 0);
 $total_uang_masuk = $uang_masuk;
 $sisa_pembayaran = $harga_paket - $total_uang_masuk;
 
-// Get currency format based on program type
-$currency = stripos($program_pilihan, 'haji') !== false ? 'USD' : 'IDR';
+// Get currency from the passed data
+$currency = $data['currency'] ?? 'IDR';
 $currencySymbol = $currency === 'USD' ? '$' : 'Rp';
 
 // Include the terbilang helper
 require_once 'terbilang.php';
-$terbilang = $currency === 'USD' ? 
-    terbilang($total_uang_masuk) . ' US Dollar' : 
-    terbilang($total_uang_masuk) . ' Rupiah';
+$terbilang = terbilang($total_uang_masuk, $currency);
 
-function formatCurrency($value) {
+function formatCurrency($value, $curr = 'IDR') {
     // If already numeric, format directly
     if (is_numeric($value)) {
-        return 'Rp ' . number_format($value, 0, ',', '.');
+        return ($curr === 'USD' ? '$ ' : 'Rp ') . number_format($value, 0, ',', '.');
     }
 
     // Remove common formatting if string input
     $cleaned = preg_replace('/[^0-9]/', '', $value);
-    return 'Rp ' . number_format((float)$cleaned, 0, ',', '.');
+    return ($curr === 'USD' ? '$ ' : 'Rp ') . number_format((float)$cleaned, 0, ',', '.');
 }
 
 
 // Format the currency values for display
-$uang_masuk_formatted = !empty($uang_masuk) ? formatCurrency($uang_masuk) : 'Rp 0';
-$total_harga_formatted = !empty($total_harga) ? formatCurrency($total_harga) : 'Rp 0';
-$diskon_formatted = !empty($diskon) ? formatCurrency($diskon) : 'Rp 0';
-$total_uang_masuk_formatted = !empty($total_uang_masuk) ? formatCurrency($total_uang_masuk) : 'Rp 0';
-$sisa_pembayaran_formatted = !empty($sisa_pembayaran) ? formatCurrency($sisa_pembayaran) : 'Rp 0';
+$uang_masuk_formatted = !empty($uang_masuk) ? formatCurrency($uang_masuk, $currency) : ($currency === 'USD' ? '$ 0' : 'Rp 0');
+$total_harga_formatted = !empty($total_harga) ? formatCurrency($total_harga, $currency) : ($currency === 'USD' ? '$ 0' : 'Rp 0');
+$diskon_formatted = !empty($diskon) ? formatCurrency($diskon, $currency) : ($currency === 'USD' ? '$ 0' : 'Rp 0');
+$total_uang_masuk_formatted = !empty($total_uang_masuk) ? formatCurrency($total_uang_masuk, $currency) : ($currency === 'USD' ? '$ 0' : 'Rp 0');
+$sisa_pembayaran_formatted = !empty($sisa_pembayaran) ? formatCurrency($sisa_pembayaran, $currency) : ($currency === 'USD' ? '$ 0' : 'Rp 0');
 
 // Function to check if online resource is accessible
 function isOnlineResourceAccessible($url) {
