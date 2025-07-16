@@ -1,0 +1,47 @@
+@startuml MIW_Deployment_Diagram
+skinparam componentStyle uml2
+
+title MIW Travel Management System - Deployment Diagram
+
+cloud "Internet" {
+    [Email Server\nSMTP] as EmailServer
+}
+
+node "Web Server" {
+    component [Apache HTTP Server] as Apache
+    component [PHP Runtime] as PHP
+    
+    frame "MIW Application" {
+        [Admin Dashboard]
+        [Registration System]
+        [Payment Processing]
+        [Document Management]
+        [Email Service]
+    }
+}
+
+database "MySQL Database" {
+    [data_jamaah]
+    [data_paket]
+    [data_invoice]
+    [data_pembatalan]
+}
+
+node "Client Device" {
+    [Web Browser] as Browser
+}
+
+' Physical connections
+Browser ..> Apache : HTTPS
+Apache --> PHP : FastCGI
+PHP --> [MySQL Database] : TCP/IP
+PHP --> EmailServer : SMTP
+
+' Logical connections
+[Admin Dashboard] --> [MySQL Database]
+[Registration System] --> [MySQL Database]
+[Payment Processing] --> [MySQL Database]
+[Document Management] --> [MySQL Database]
+[Email Service] --> EmailServer
+
+@enduml

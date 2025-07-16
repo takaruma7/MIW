@@ -29,18 +29,12 @@ define('SMTP_USERNAME', 'drakestates@gmail.com');
 define('SMTP_PASSWORD', 'lqqj vnug vrau dkfa');
 define('SMTP_PORT', 587);
 define('SMTP_ENCRYPTION', 'tls');
+define('SMTP_SECURE', 'tls');
 
 // Other configurations
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Jakarta');
-
-// SMTP Configuration
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'drakestates@gmail.com'); // Use your Gmail address
-define('SMTP_PASSWORD', 'lqqj vnug vrau dkfa'); // Use Gmail App Password (16 chars)
-define('SMTP_SECURE', 'tls');
 
 // Email settings
 define('EMAIL_FROM', 'drakestates@gmail.com');

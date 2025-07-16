@@ -1,0 +1,61 @@
+@startuml Pilgrimage_Registration_Flow
+skinparam activity {
+    BackgroundColor LightYellow
+    BorderColor DarkGoldenRod
+    StartColor Gold
+    EndColor Red
+    BarColor Navy
+}
+
+title Pilgrimage Registration and Processing Workflow
+
+|Applicant|
+start
+:Research Available Programs;
+:Choose Travel Package;
+:Complete Personal Details;
+
+|Documentation|
+:Prepare Required Papers;
+fork
+  :Submit Identity Documents;
+fork again
+  :Submit Medical Records;
+fork again
+  :Submit Travel Documents;
+end fork
+:Validate Documentation;
+
+|Financial|
+:Review Package Costs;
+:Select Payment Plan;
+:Submit Initial Payment;
+if (Payment Verified?) then (yes)
+  :Record Transaction;
+  :Issue Receipt;
+else (no)
+  :Request Payment Correction;
+  :Await Resubmission;
+endif
+
+|Processing|
+:Evaluate Application;
+if (All Requirements Met?) then (yes)
+  :Assign Group Number;
+  :Reserve Accommodations;
+  :Generate Travel Documents;
+else (no)
+  :List Missing Requirements;
+  :Request Completion;
+endif
+
+|Confirmation|
+:Send Welcome Package;
+:Schedule Orientation;
+:Provide Travel Schedule;
+
+|Applicant|
+:Receive Final Instructions;
+stop
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml MIW_Activity_Diagram
+skinparam ActivityBackgroundColor LightGray
+skinparam ActivityBorderColor Black
+
+title MIW Travel Management System - Activity Diagram (Registration & Payment Process)
+
+|Customer|
+start
+:Select Package Type (Hajj/Umroh);
+:Fill Registration Form;
+:Submit Required Documents;
+:Choose Room Type;
+:Make Payment;
+
+|System|
+:Validate Registration Data;
+if (Data Valid?) then (yes)
+  :Calculate Package Price;
+  :Create Registration Record;
+  :Send Registration Email;
+else (no)
+  :Display Error Message;
+  :Return to Registration Form;
+endif
+
+|Admin|
+:Review Registration;
+:Verify Documents;
+if (Documents Complete?) then (yes)
+  :Review Payment;
+  if (Payment Valid?) then (yes)
+    :Verify Payment;
+    :Generate Invoice;
+    :Send Confirmation Email;
+  else (no)
+    :Reject Payment;
+    :Send Rejection Email;
+  endif
+else (no)
+  :Request Missing Documents;
+endif
+
+|System|
+:Update Registration Status;
+:Update Payment Status;
+
+|Customer|
+:Receive Email Notification;
+stop
+
+@enduml

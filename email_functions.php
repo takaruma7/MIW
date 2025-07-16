@@ -423,3 +423,61 @@ function buildPaymentRejectionContent($paymentData) {
     
     return $content;
 }
+
+function buildCancellationContent($cancellationData) {
+    $content = "
+        <h3>Detail Pembatalan</h3>
+        <table border='1' cellpadding='5' cellspacing='0'>
+            <tr><th width='30%'>NIK</th><td>" . htmlspecialchars($cancellationData['nik']) . "</td></tr>
+            <tr><th>Nama Lengkap</th><td>" . htmlspecialchars($cancellationData['nama']) . "</td></tr>
+            <tr><th>No. Telepon</th><td>" . htmlspecialchars($cancellationData['no_telp']) . "</td></tr>
+            <tr><th>Email</th><td>" . htmlspecialchars($cancellationData['email']) . "</td></tr>
+            <tr><th>Alasan Pembatalan</th><td>" . htmlspecialchars($cancellationData['alasan']) . "</td></tr>
+            <tr><th>Tanggal Pengajuan</th><td>" . date('d/m/Y H:i:s') . "</td></tr>
+        </table>
+    ";
+    
+    return $content;
+}
+
+/**
+ * Send cancellation notification email
+ */
+function sendCancellationEmail($cancellationData, $files) {
+    if (!EMAIL_ENABLED) {
+        error_log("Email sending is disabled in config");
+        return false;
+    }
+
+    try {
+        $mail = configurePHPMailer();
+        
+        // Recipients
+        $mail->addAddress(ADMIN_EMAIL);
+        if (!empty($cancellationData['email'])) {
+            $mail->addReplyTo($cancellationData['email'], $cancellationData['nama']);
+        }
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = 'Pengajuan Pembatalan - ' . $cancellationData['nama'];
+        
+        $emailContent = buildCancellationContent($cancellationData) . 
+                       '<p>Dokumen pendukung terlampir dalam email ini.</p>';
+        
+        $mail->Body = buildEmailTemplate('Pengajuan Pembatalan', $emailContent);
+        $mail->AltBody = strip_tags($emailContent);
+
+        // Add attachments
+        foreach ($files as $file) {
+            if ($file['error'] === UPLOAD_ERR_OK) {
+                $mail->addAttachment($file['tmp_name'], $file['name']);
+            }
+        }
+
+        return $mail->send();
+    } catch (Exception $e) {
+        error_log("Cancellation email sending failed: " . $e->getMessage());
+        return false;
+    }
+}

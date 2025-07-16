@@ -1,0 +1,59 @@
+@startuml Pilgrimage_Enrollment_Process
+skinparam sequence {
+    ParticipantBackgroundColor LightSkyBlue
+    ParticipantBorderColor DarkBlue
+    LifeLineBorderColor Blue
+    ArrowColor DarkSlateGray
+}
+
+title Pilgrimage Program Enrollment Process
+
+actor "Prospective Pilgrim" as Pilgrim
+participant "Portal Interface" as Portal
+participant "Enrollment Service" as Enrollment
+participant "Document Handler" as DocHandler
+participant "Payment Gateway" as Payment
+participant "Program Manager" as Manager
+database "Central Repository" as DB
+
+== Program Selection ==
+Pilgrim -> Portal: Browse Available Programs
+Portal -> DB: Fetch Active Programs
+DB --> Portal: Return Program List
+Portal --> Pilgrim: Display Program Options
+Pilgrim -> Portal: Select Preferred Program
+
+== Personal Information ==
+Pilgrim -> Portal: Submit Personal Details
+Portal -> Enrollment: Initialize Application
+Enrollment -> DB: Create Application Record
+DB --> Enrollment: Confirm Creation
+Enrollment --> Portal: Application Reference Number
+Portal --> Pilgrim: Confirmation & Next Steps
+
+== Document Submission ==
+Pilgrim -> Portal: Upload Required Documents
+Portal -> DocHandler: Process Documents
+DocHandler -> DB: Store Document References
+DocHandler -> Manager: Request Document Review
+Manager --> DocHandler: Review Results
+DocHandler --> Portal: Document Status Update
+Portal --> Pilgrim: Document Verification Status
+
+== Financial Processing ==
+Pilgrim -> Portal: Initiate Payment
+Portal -> Payment: Process Transaction
+Payment -> DB: Record Payment Details
+Payment -> Manager: Payment Notification
+Manager -> DB: Update Application Status
+DB --> Portal: Updated Status
+Portal --> Pilgrim: Payment Confirmation
+
+== Program Confirmation ==
+Manager -> Enrollment: Review Complete Application
+Enrollment -> DB: Update Enrollment Status
+DB --> Manager: Confirmation
+Manager -> DocHandler: Generate Welcome Package
+DocHandler --> Pilgrim: Send Welcome Materials
+
+@enduml

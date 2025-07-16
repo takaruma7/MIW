@@ -1,0 +1,65 @@
+@startuml MIW_Use_Case_Diagram
+skinparam actorStyle awesome
+
+title MIW Travel Management System - Use Case Diagram
+
+' Actors
+actor "Customer/Jamaah" as Customer
+actor "Admin" as Admin
+actor "System" as System
+
+rectangle "MIW Travel Management System" {
+    ' Customer Use Cases
+    usecase "Register for Hajj/Umrah" as Register
+    usecase "Submit Documents" as Documents
+    usecase "Make Payment" as Payment
+    usecase "Request Cancellation" as Cancel
+    usecase "View Package Details" as ViewPackage
+
+    ' Admin Use Cases
+    usecase "Manage Packages" as ManagePackages
+    usecase "Verify Payments" as VerifyPayments
+    usecase "Process Registrations" as ProcessReg
+    usecase "Manage Cancellations" as ManageCancel
+    usecase "Generate Invoice" as GenInvoice
+    usecase "View Dashboard" as ViewDashboard
+    usecase "Send Email Notifications" as SendEmail
+    usecase "Generate Manifest" as GenManifest
+
+    ' System Use Cases
+    usecase "Calculate Package Prices" as CalcPrice
+    usecase "Generate Reports" as GenReports
+    usecase "Update Payment Status" as UpdatePayment
+}
+
+' Customer Relationships
+Customer --> Register
+Customer --> Documents
+Customer --> Payment
+Customer --> Cancel
+Customer --> ViewPackage
+
+' Admin Relationships
+Admin --> ManagePackages
+Admin --> VerifyPayments
+Admin --> ProcessReg
+Admin --> ManageCancel
+Admin --> GenInvoice
+Admin --> ViewDashboard
+Admin --> GenManifest
+
+' System Relationships
+System --> CalcPrice
+System --> GenReports
+System --> UpdatePayment
+System --> SendEmail
+
+' Include Relationships
+Register .> Documents : <<include>>
+Register .> Payment : <<include>>
+VerifyPayments .> GenInvoice : <<include>>
+VerifyPayments .> SendEmail : <<include>>
+ProcessReg .> SendEmail : <<include>>
+ManageCancel .> UpdatePayment : <<include>>
+
+@enduml

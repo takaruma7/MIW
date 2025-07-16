@@ -1,0 +1,84 @@
+@startuml MIW_Sequence_Diagram
+skinparam sequenceMessageAlign center
+
+title MIW Travel Management System - Sequence Diagram (Registration & Payment)
+
+actor Customer
+participant "Web Interface" as UI
+participant "Registration Handler" as RegHandler
+participant "Payment Handler" as PayHandler
+participant "Email Service" as Email
+participant "Database" as DB
+actor Admin
+
+== Registration Process ==
+
+Customer -> UI: Fill registration form
+activate UI
+UI -> RegHandler: Submit registration data
+activate RegHandler
+
+RegHandler -> DB: Validate customer data
+activate DB
+DB --> RegHandler: Validation result
+deactivate DB
+
+alt Valid Registration
+    RegHandler -> DB: Create registration record
+    activate DB
+    DB --> RegHandler: Registration created
+    deactivate DB
+    
+    RegHandler -> Email: Send registration notification
+    activate Email
+    Email --> Customer: Registration confirmation
+    Email --> Admin: New registration alert
+    deactivate Email
+else Invalid Registration
+    RegHandler --> UI: Show validation errors
+end
+deactivate RegHandler
+
+UI --> Customer: Display registration status
+deactivate UI
+
+== Payment Process ==
+
+Customer -> UI: Submit payment
+activate UI
+UI -> PayHandler: Process payment
+activate PayHandler
+
+PayHandler -> DB: Store payment details
+activate DB
+DB --> PayHandler: Payment stored
+deactivate DB
+
+PayHandler --> UI: Payment submitted
+deactivate PayHandler
+UI --> Customer: Payment confirmation
+deactivate UI
+
+== Payment Verification ==
+
+Admin -> UI: Review payment
+activate UI
+UI -> PayHandler: Verify payment
+activate PayHandler
+
+PayHandler -> DB: Update payment status
+activate DB
+DB --> PayHandler: Status updated
+deactivate DB
+
+PayHandler -> Email: Send payment confirmation
+activate Email
+Email --> Customer: Payment status notification
+deactivate Email
+
+PayHandler --> UI: Verification complete
+deactivate PayHandler
+UI --> Admin: Show verification status
+deactivate UI
+
+@enduml

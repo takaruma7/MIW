@@ -1,0 +1,75 @@
+@startuml MIW_Database_Diagram
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) #x#
+
+title MIW Travel Management System - Database Schema
+
+table(data_paket) {
+    primary_key(pak_id) : INT
+    jenis_paket : ENUM
+    currency : ENUM
+    program_pilihan : VARCHAR(255)
+    tanggal_keberangkatan : DATE
+    base_price_quad : DECIMAL(15,2)
+    base_price_triple : DECIMAL(15,2)
+    base_price_double : DECIMAL(15,2)
+    hotel_medinah : VARCHAR(100)
+    hotel_makkah : VARCHAR(100)
+    hcn : VARCHAR(50)
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+table(data_jamaah) {
+    primary_key(nik) : VARCHAR(16)
+    nama : VARCHAR(100)
+    tempat_lahir : VARCHAR(50)
+    tanggal_lahir : DATE
+    jenis_kelamin : ENUM
+    alamat : TEXT
+    kode_pos : VARCHAR(10)
+    email : VARCHAR(50)
+    no_telp : VARCHAR(20)
+    foreign_key(pak_id) : INT
+    type_room_pilihan : ENUM
+    payment_status : ENUM
+    payment_total : DECIMAL(15,2)
+    payment_remaining : DECIMAL(15,2)
+    payment_verified_at : TIMESTAMP
+    payment_rejected_at : DATETIME
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+table(data_invoice) {
+    primary_key(invoice_id) : VARCHAR(8)
+    foreign_key(pak_id) : INT
+    foreign_key(nik) : VARCHAR(16)
+    nama : VARCHAR(100)
+    payment_type : ENUM
+    payment_method : VARCHAR(50)
+    payment_total : DECIMAL(15,2)
+    payment_date : DATE
+    payment_time : TIME
+    created_at : TIMESTAMP
+}
+
+table(data_pembatalan) {
+    primary_key(pembatalan_id) : INT
+    foreign_key(nik) : VARCHAR(16)
+    reason : TEXT
+    status : ENUM
+    kwitansi_path : VARCHAR(255)
+    proof_path : VARCHAR(255)
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+' Relationships
+data_jamaah }-- data_paket : pak_id
+data_invoice }-- data_paket : pak_id
+data_invoice }-- data_jamaah : nik
+data_pembatalan }-- data_jamaah : nik
+
+@enduml
