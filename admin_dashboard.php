@@ -1,3 +1,137 @@
+<?php
+require_once 'config.php';
+
+// Handle AJAX request for jamaah details
+if (isset($_GET['nik']) && !empty($_GET['nik']) && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+    $stmt = $pdo->prepare("
+        SELECT 
+            j.*,
+            p.program_pilihan,
+            p.jenis_paket,
+            p.tanggal_keberangkatan,
+            p.base_price_quad,
+            p.base_price_triple,
+            p.base_price_double,
+            p.currency,
+            i.invoice_id,
+            i.payment_type as invoice_payment_type,
+            COALESCE(j.payment_total, i.payment_amount) as payment_total,
+            COALESCE(j.payment_remaining, i.sisa_pembayaran) as payment_remaining,
+            i.total_uang_masuk,
+            i.diskon
+        FROM data_jamaah j
+        LEFT JOIN data_paket p ON j.pak_id = p.pak_id
+        LEFT JOIN data_invoice i ON j.nik = i.nik
+        WHERE j.nik = ?
+    ");
+    $stmt->execute([$_GET['nik']]);
+    $jamaah_details = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    header('Content-Type: application/json');
+    echo json_encode($jamaah_details);
+    exit;
+}
+
+// Get total count of jamaah
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM data_jamaah");
+$total_jamaah = $stmt->fetch()['total'];
+
+// Get verified payments
+$stmt = $pdo->query("
+    SELECT 
+        j.*,
+        p.program_pilihan,
+        p.jenis_paket,
+        p.tanggal_keberangkatan,
+        p.base_price_quad,
+        p.base_price_triple,
+        p.base_price_double,
+        i.invoice_id,
+        i.payment_type as invoice_payment_type,
+        i.payment_amount,
+        i.total_uang_masuk,
+        i.sisa_pembayaran
+    FROM data_jamaah j
+    LEFT JOIN data_paket p ON j.pak_id = p.pak_id
+    LEFT JOIN data_invoice i ON j.nik = i.nik
+    WHERE j.payment_status = 'verified'
+    ORDER BY j.payment_verified_at DESC
+");
+$verified_payments = $stmt->fetchAll();
+
+// Get pending payments
+$stmt = $pdo->query("
+    SELECT 
+        j.*,
+        p.program_pilihan,
+        p.jenis_paket,
+        p.tanggal_keberangkatan,
+        p.base_price_quad,
+        p.base_price_triple,
+        p.base_price_double,
+        i.invoice_id,
+        i.payment_type as invoice_payment_type,
+        i.payment_amount,
+        i.total_uang_masuk,
+        i.sisa_pembayaran
+    FROM data_jamaah j
+    LEFT JOIN data_paket p ON j.pak_id = p.pak_id
+    LEFT JOIN data_invoice i ON j.nik = i.nik
+    WHERE j.payment_status = 'pending'
+    ORDER BY j.payment_uploaded_at DESC
+");
+$pending_payments = $stmt->fetchAll();
+
+// Get jamaah data with package and payment info
+$query = "
+    SELECT 
+        j.*,
+        p.program_pilihan,
+        p.jenis_paket,
+        p.tanggal_keberangkatan,
+        p.base_price_quad,
+        p.base_price_triple,
+        p.base_price_double,
+        i.invoice_id,
+        i.payment_type as invoice_payment_type,
+        i.payment_amount,
+        i.total_uang_masuk,
+        i.sisa_pembayaran
+    FROM data_jamaah j
+    LEFT JOIN data_paket p ON j.pak_id = p.pak_id
+    LEFT JOIN data_invoice i ON j.nik = i.nik
+    ORDER BY j.created_at DESC
+";
+$stmt = $pdo->query($query);
+$jamaah_list = $stmt->fetchAll();
+
+// Get details for a specific jamaah if NIK is provided
+$jamaah_details = null;
+if (isset($_GET['nik'])) {
+    $stmt = $pdo->prepare("
+        SELECT 
+            j.*,
+            p.program_pilihan,
+            p.jenis_paket,
+            p.tanggal_keberangkatan,
+            p.base_price_quad,
+            p.base_price_triple,
+            p.base_price_double,
+            i.invoice_id,
+            i.payment_type as invoice_payment_type,
+            i.payment_amount,
+            i.total_uang_masuk,
+            i.sisa_pembayaran,
+            i.diskon
+        FROM data_jamaah j
+        LEFT JOIN data_paket p ON j.pak_id = p.pak_id
+        LEFT JOIN data_invoice i ON j.nik = i.nik
+        WHERE j.nik = ?
+    ");
+    $stmt->execute([$_GET['nik']]);
+    $jamaah_details = $stmt->fetch();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,10 +149,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h2><i class="bi bi-people-fill"></i> Data Jamaah</h2>
                 <div>
-                    <span class="badge bg-primary">Total Jamaah: 1</span>
+                    <span class="badge bg-primary">Total Jamaah: <?= $total_jamaah ?></span>
                 </div>
             </div>
         </header>
+
+        <?php include 'admin_nav.php'; ?>
 
         <!-- Records Per Page Selector -->
         <div class="records-per-page d-flex justify-content-end mb-3">
@@ -43,29 +179,48 @@
                         <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
+                                    <th>No.</th>
                                     <th>NIK</th>
-                                    <th>Nama</th>
-                                    <th>No. Telp</th>
+                                    <th>Name</th>
                                     <th>Program</th>
-                                    <th>Room Type</th>
+                                    <th>Type</th>
+                                    <th>Departure</th>
                                     <th>Payment Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php foreach ($jamaah_list as $index => $jamaah): ?>
                                 <tr>
-                                    <td>3273272102010002</td>
-                                    <td>Yusuf Hendra</td>
-                                    <td>081221030301</td>
-                                    <td>Haji 2026</td>
-                                    <td>Quad</td>
-                                    <td><span class="badge bg-success">verified</span></td>
-                                    <td class="action-btns">
-                                        <button class="btn btn-sm btn-primary view-details" data-nik="3273272102010002">
+                                    <td><?= $index + 1 ?></td>
+                                    <td><?= htmlspecialchars($jamaah['nik']) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['nama']) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['program_pilihan'] ?? '-') ?></td>
+                                    <td><?= htmlspecialchars($jamaah['jenis_paket'] ?? '-') ?></td>
+                                    <td><?= $jamaah['tanggal_keberangkatan'] ? date('d M Y', strtotime($jamaah['tanggal_keberangkatan'])) : '-' ?></td>
+                                    <td>
+                                        <?php
+                                        $status_class = [
+                                            'verified' => 'success',
+                                            'pending' => 'warning',
+                                            'rejected' => 'danger'
+                                        ];
+                                        $status = $jamaah['payment_status'] ?? 'pending';
+                                        ?>
+                                        <span class="badge bg-<?= $status_class[$status] ?? 'secondary' ?>">
+                                            <?= ucfirst($status) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info view-details" 
+                                                data-nik="<?= $jamaah['nik'] ?>" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#jamaahDetailsModal">
                                             <i class="bi bi-eye"></i> View
                                         </button>
                                     </td>
                                 </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -76,29 +231,46 @@
             <div class="tab-pane fade" id="verified" role="tabpanel" aria-labelledby="verified-tab">
                 <div class="table-container">
                     <div class="table-title">
-                        <h5>Jamaah with Verified Payments</h5>
+                        <h5>Verified Payments</h5>
                     </div>
-                    <div class="table-responsive scrollable-table" style="--records-per-page: 10;">
+                    <div class="table-responsive scrollable-table">
                         <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
-                                    <th>NIK</th>
-                                    <th>Nama</th>
+                                    <th>No.</th>
+                                    <th>Name</th>
+                                    <th>Program</th>
                                     <th>Payment Type</th>
-                                    <th>Amount Paid</th>
+                                    <th>Amount</th>
+                                    <th>Total Paid</th>
                                     <th>Remaining</th>
+                                    <th>Verified At</th>
                                     <th>Verified By</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php foreach ($verified_payments as $i => $jamaah): ?>
                                 <tr>
-                                    <td>3273272102010002</td>
-                                    <td>Yusuf Hendra</td>
-                                    <td>DP</td>
-                                    <td>5,000.00</td>
-                                    <td>11,000.00</td>
-                                    <td>Admin</td>
+                                    <td><?= $i + 1 ?></td>
+                                    <td><?= htmlspecialchars($jamaah['nama']) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['program_pilihan']) ?></td>
+                                    <td><span class="badge bg-info"><?= htmlspecialchars($jamaah['payment_type']) ?></span></td>
+                                    <td><?= is_null($jamaah['payment_total']) ? '0.00' : number_format($jamaah['payment_total'], 2) ?></td>
+                                    <td><?= is_null($jamaah['total_uang_masuk']) ? '0.00' : number_format($jamaah['total_uang_masuk'], 2) ?></td>
+                                    <td><?= is_null($jamaah['payment_remaining']) ? '0.00' : number_format($jamaah['payment_remaining'], 2) ?></td>
+                                    <td><?= date('d M Y H:i', strtotime($jamaah['payment_verified_at'])) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['payment_verified_by']) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewDetails('<?= $jamaah['nik'] ?>')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <a href="invoice.php?nik=<?= $jamaah['nik'] ?>" class="btn btn-sm btn-success">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                    </td>
                                 </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -109,25 +281,49 @@
             <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
                 <div class="table-container">
                     <div class="table-title">
-                        <h5>Jamaah with Pending Payments</h5>
+                        <h5>Pending Payments</h5>
                     </div>
-                    <div class="table-responsive scrollable-table" style="--records-per-page: 10;">
+                    <div class="table-responsive scrollable-table">
                         <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
-                                    <th>NIK</th>
-                                    <th>Nama</th>
+                                    <th>No.</th>
+                                    <th>Name</th>
+                                    <th>Program</th>
                                     <th>Payment Type</th>
                                     <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Account Name</th>
                                     <th>Payment Date</th>
+                                    <th>Uploaded At</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- No pending payments in the sample data -->
+                                <?php foreach ($pending_payments as $i => $jamaah): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center">No pending payments found</td>
+                                    <td><?= $i + 1 ?></td>
+                                    <td><?= htmlspecialchars($jamaah['nama']) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['program_pilihan']) ?></td>
+                                    <td><span class="badge bg-warning"><?= htmlspecialchars($jamaah['payment_type']) ?></span></td>
+                                    <td><?= is_null($jamaah['payment_total']) ? '0.00' : number_format($jamaah['payment_total'], 2) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['payment_method']) ?></td>
+                                    <td><?= htmlspecialchars($jamaah['transfer_account_name']) ?></td>
+                                    <td><?= date('d M Y', strtotime($jamaah['payment_date'])) ?></td>
+                                    <td><?= date('d M Y H:i', strtotime($jamaah['payment_uploaded_at'])) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewDetails('<?= $jamaah['nik'] ?>')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success verify-payment" data-nik="<?= $jamaah['nik'] ?>">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger reject-payment" data-nik="<?= $jamaah['nik'] ?>">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </td>
                                 </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -151,64 +347,56 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <h3>Basic Information</h3>
-                                <table>
+                                <table class="table">
                                     <tr>
-                                        <td width="40%">NIK</td>
-                                        <td id="detail-nik">3273272102010002</td>
+                                        <th>NIK</th>
+                                        <td class="jamaah-nik"></td>
                                     </tr>
                                     <tr>
-                                        <td>Full Name</td>
-                                        <td id="detail-nama">Yusuf Hendra</td>
+                                        <th>Name</th>
+                                        <td class="jamaah-nama"></td>
                                     </tr>
                                     <tr>
-                                        <td>Place/Date of Birth</td>
-                                        <td id="detail-ttl">Purwakarta, 31 Dec 2025</td>
+                                        <th>Gender</th>
+                                        <td class="jamaah-gender"></td>
                                     </tr>
                                     <tr>
-                                        <td>Gender</td>
-                                        <td id="detail-gender">Laki-laki</td>
+                                        <th>Birth Place</th>
+                                        <td class="jamaah-birthplace"></td>
                                     </tr>
                                     <tr>
-                                        <td>Age</td>
-                                        <td id="detail-age">0</td>
+                                        <th>Birth Date</th>
+                                        <td class="jamaah-birthdate"></td>
                                     </tr>
                                     <tr>
-                                        <td>Nationality</td>
-                                        <td id="detail-nationality">Indonesia</td>
+                                        <th>Age</th>
+                                        <td class="jamaah-age"></td>
                                     </tr>
                                     <tr>
-                                        <td>Marital Status</td>
-                                        <td id="detail-marital">Belum Menikah</td>
+                                        <th>Nationality</th>
+                                        <td class="jamaah-nationality"></td>
                                     </tr>
                                 </table>
                             </div>
                             
                             <div class="col-md-6">
                                 <h3>Contact Information</h3>
-                                <table>
+                                <table class="table">
                                     <tr>
-                                        <td width="40%">Address</td>
-                                        <td id="detail-alamat">Bandung</td>
+                                        <th>Email</th>
+                                        <td class="jamaah-email"></td>
                                     </tr>
                                     <tr>
-                                        <td>Postal Code</td>
-                                        <td id="detail-kodepos">42569</td>
+                                        <th>Phone</th>
+                                        <td class="jamaah-phone"></td>
                                     </tr>
                                     <tr>
-                                        <td>Email</td>
-                                        <td id="detail-email">winstonarma7@gmail.com</td>
+                                        <th>Address</th>
+                                        <td class="jamaah-address"></td>
                                     </tr>
                                     <tr>
-                                        <td>Phone Number</td>
-                                        <td id="detail-telp">081221030301</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Emergency Contact</td>
-                                        <td id="detail-emergency">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Emergency Phone</td>
-                                        <td id="detail-emergency-hp">-</td>
+                                        <th>Postal Code</th>
+                                        <td class="jamaah-postal"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -217,230 +405,112 @@
                         <div class="row mt-4">
                             <div class="col-md-6">
                                 <h3>Family Information</h3>
-                                <table>
+                                <table class="table">
                                     <tr>
-                                        <td width="40%">Father's Name</td>
-                                        <td id="detail-ayah">Test</td>
+                                        <th>Father's Name</th>
+                                        <td class="jamaah-father"></td>
                                     </tr>
                                     <tr>
-                                        <td>Mother's Name</td>
-                                        <td id="detail-ibu">-</td>
+                                        <th>Mother's Name</th>
+                                        <td class="jamaah-mother"></td>
                                     </tr>
                                     <tr>
-                                        <td>Mahram Name</td>
-                                        <td id="detail-mahram">Drake Andresson</td>
+                                        <th>Marital Status</th>
+                                        <td class="jamaah-marital"></td>
                                     </tr>
                                     <tr>
-                                        <td>Mahram Relationship</td>
-                                        <td id="detail-mahram-rel">Orang Tua</td>
+                                        <th>Mahram Name</th>
+                                        <td class="jamaah-mahram-name"></td>
                                     </tr>
                                     <tr>
-                                        <td>Mahram Phone</td>
-                                        <td id="detail-mahram-phone">3273272102010001</td>
+                                        <th>Mahram Relation</th>
+                                        <td class="jamaah-mahram-relation"></td>
                                     </tr>
                                 </table>
                             </div>
                             
                             <div class="col-md-6">
                                 <h3>Physical Information</h3>
-                                <table>
+                                <table class="table">
                                     <tr>
-                                        <td width="40%">Height</td>
-                                        <td id="detail-tinggi">100 cm</td>
+                                        <th>Height</th>
+                                        <td class="jamaah-height"></td>
                                     </tr>
                                     <tr>
-                                        <td>Weight</td>
-                                        <td id="detail-berat">30 kg</td>
+                                        <th>Weight</th>
+                                        <td class="jamaah-weight"></td>
                                     </tr>
                                     <tr>
-                                        <td>Blood Type</td>
-                                        <td id="detail-gol-darah">A</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Distinctive Features</td>
-                                        <td id="detail-ciri">
-                                            Rambut: -<br>
-                                            Alis: Test<br>
-                                            Hidung: Test<br>
-                                            Muka: Test
-                                        </td>
+                                        <th>Blood Type</th>
+                                        <td class="jamaah-blood"></td>
                                     </tr>
                                 </table>
                             </div>
                         </div>
-                        
-                        <h3 class="mt-4">Education & Work</h3>
-                        <table>
-                            <tr>
-                                <td width="20%">Education</td>
-                                <td id="detail-pendidikan">SD</td>
-                            </tr>
-                            <tr>
-                                <td>Occupation</td>
-                                <td id="detail-pekerjaan">Pegawai Negeri Sipil</td>
-                            </tr>
-                        </table>
-                        
-                        <h3 class="mt-4">Address Details</h3>
-                        <table>
-                            <tr>
-                                <td width="20%">Village</td>
-                                <td id="detail-desa">Cisaranten Kidul</td>
-                            </tr>
-                            <tr>
-                                <td>Subdistrict</td>
-                                <td id="detail-kecamatan">Gedebage</td>
-                            </tr>
-                            <tr>
-                                <td>City/Regency</td>
-                                <td id="detail-kota">Kota Bandung</td>
-                            </tr>
-                            <tr>
-                                <td>Province</td>
-                                <td id="detail-provinsi">Jawa Barat</td>
-                            </tr>
-                        </table>
                         
                         <h2 class="mt-5">Travel Information</h2>
                         
                         <div class="row">
                             <div class="col-md-6">
-                                <h3>Program Details</h3>
-                                <table>
+                                <h3>Package Details</h3>
+                                <table class="table">
                                     <tr>
-                                        <td width="40%">Program Type</td>
-                                        <td id="detail-program-type">Haji</td>
+                                        <th>Package Type</th>
+                                        <td class="jamaah-package-type"></td>
                                     </tr>
                                     <tr>
-                                        <td>Program Name</td>
-                                        <td id="detail-program-name">Haji 2026</td>
+                                        <th>Program</th>
+                                        <td class="jamaah-program"></td>
                                     </tr>
                                     <tr>
-                                        <td>Departure Date</td>
-                                        <td id="detail-departure">31 Dec 2025</td>
+                                        <th>Room Type</th>
+                                        <td class="jamaah-room-type"></td>
                                     </tr>
                                     <tr>
-                                        <td>Room Type</td>
-                                        <td id="detail-room-type">Quad</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Special Requests</td>
-                                        <td id="detail-requests">Testing</td>
+                                        <th>Departure Date</th>
+                                        <td class="jamaah-departure"></td>
                                     </tr>
                                 </table>
                             </div>
                             
                             <div class="col-md-6">
-                                <h3>Passport Information</h3>
-                                <table>
+                                <h3>Payment Information</h3>
+                                <table class="table">
                                     <tr>
-                                        <td width="40%">Passport Name</td>
-                                        <td id="detail-paspor-nama">-</td>
+                                        <th>Payment Status</th>
+                                        <td class="jamaah-payment-status"></td>
                                     </tr>
                                     <tr>
-                                        <td>Passport Number</td>
-                                        <td id="detail-paspor-no">-</td>
+                                        <th>Payment Type</th>
+                                        <td class="jamaah-payment-type"></td>
                                     </tr>
                                     <tr>
-                                        <td>Issuing Authority</td>
-                                        <td id="detail-paspor-tempat">-</td>
+                                        <th>Amount Paid</th>
+                                        <td class="jamaah-payment-amount"></td>
                                     </tr>
                                     <tr>
-                                        <td>Issue Date</td>
-                                        <td id="detail-paspor-keluar">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Expiry Date</td>
-                                        <td id="detail-paspor-expire">-</td>
+                                        <th>Remaining Balance</th>
+                                        <td class="jamaah-payment-remaining"></td>
                                     </tr>
                                 </table>
                             </div>
                         </div>
                         
-                        <h3 class="mt-4">Vaccination Information</h3>
-                        <table>
+                        <h3 class="mt-4">Document Status</h3>
+                        <table class="table">
                             <tr>
-                                <td width="20%">First Vaccine</td>
-                                <td id="detail-vaksin1">-</td>
+                                <th>Passport Name</th>
+                                <td class="jamaah-passport-name"></td>
                             </tr>
                             <tr>
-                                <td>Second Vaccine</td>
-                                <td id="detail-vaksin2">-</td>
+                                <th>Passport Number</th>
+                                <td class="jamaah-passport-number"></td>
                             </tr>
                             <tr>
-                                <td>Third Vaccine</td>
-                                <td id="detail-vaksin3">-</td>
-                            </tr>
-                            <tr>
-                                <td>Previous Hajj Experience</td>
-                                <td id="detail-pengalaman-haji">Belum</td>
+                                <th>Passport Issue Place</th>
+                                <td class="jamaah-passport-issue-place"></td>
                             </tr>
                         </table>
-                        
-                        <h2 class="mt-5">Payment Information</h2>
-                        
-                        <div class="payment-section">
-                            <h5>Payment Details</h5>
-                            <table>
-                                <tr>
-                                    <td width="30%">Payment Status</td>
-                                    <td><span class="badge bg-success">verified</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Payment Type</td>
-                                    <td id="detail-payment-type">DP</td>
-                                </tr>
-                                <tr>
-                                    <td>Payment Method</td>
-                                    <td id="detail-payment-method">BSI</td>
-                                </tr>
-                                <tr>
-                                    <td>Payment Date</td>
-                                    <td id="detail-payment-date">15 Jul 2025</td>
-                                </tr>
-                                <tr>
-                                    <td>Payment Time</td>
-                                    <td id="detail-payment-time">13:02:01</td>
-                                </tr>
-                                <tr>
-                                    <td>Account Name</td>
-                                    <td id="detail-payment-account">Kevin</td>
-                                </tr>
-                                <tr>
-                                    <td>Amount Paid</td>
-                                    <td id="detail-payment-amount">5,000.00</td>
-                                </tr>
-                                <tr>
-                                    <td>Remaining Payment</td>
-                                    <td id="detail-payment-remaining">11,000.00</td>
-                                </tr>
-                                <tr>
-                                    <td>Verified By</td>
-                                    <td id="detail-payment-verified">Admin</td>
-                                </tr>
-                                <tr>
-                                    <td>Verified At</td>
-                                    <td id="detail-payment-verified-at">15 Jul 2025 14:05</td>
-                                </tr>
-                            </table>
-                        </div>
-                        
-                        <h3 class="mt-4">Document Checklist</h3>
-                        <div class="document-checklist">
-                            <div class="document-checklist-item">
-                                <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>KK Document</span>
-                            </div>
-                            <div class="document-checklist-item">
-                                <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>KTP Document</span>
-                            </div>
-                            <div class="document-checklist-item">
-                                <i class="bi bi-x-circle-fill text-danger"></i>
-                                <span>Passport</span>
-                            </div>
-                            <!-- Add more documents as needed -->
-                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -461,13 +531,63 @@
         // View details button click handler
         document.querySelectorAll('.view-details').forEach(button => {
             button.addEventListener('click', function() {
-                // In a real implementation, you would fetch the details for the specific NIK
                 var nik = this.getAttribute('data-nik');
-                console.log('View details for NIK:', nik);
                 
-                // Show the modal
-                var modal = new bootstrap.Modal(document.getElementById('jamaahDetailsModal'));
-                modal.show();
+                // Fetch jamaah details via AJAX
+                fetch(`admin_dashboard.php?nik=${nik}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(jamaah => {
+                        // Basic Information
+                        document.querySelector('.jamaah-nik').textContent = jamaah.nik;
+                        document.querySelector('.jamaah-nama').textContent = jamaah.nama;
+                        document.querySelector('.jamaah-gender').textContent = jamaah.jenis_kelamin;
+                        document.querySelector('.jamaah-birthplace').textContent = jamaah.tempat_lahir;
+                        document.querySelector('.jamaah-birthdate').textContent = new Date(jamaah.tanggal_lahir).toLocaleDateString();
+                        document.querySelector('.jamaah-age').textContent = jamaah.umur;
+                        document.querySelector('.jamaah-nationality').textContent = jamaah.kewarganegaraan;
+                        
+                        // Contact Information
+                        document.querySelector('.jamaah-email').textContent = jamaah.email;
+                        document.querySelector('.jamaah-phone').textContent = jamaah.no_telp;
+                        document.querySelector('.jamaah-address').textContent = jamaah.alamat;
+                        document.querySelector('.jamaah-postal').textContent = jamaah.kode_pos;
+                        
+                        // Family Information
+                        document.querySelector('.jamaah-father').textContent = jamaah.nama_ayah;
+                        document.querySelector('.jamaah-mother').textContent = jamaah.nama_ibu;
+                        document.querySelector('.jamaah-marital').textContent = jamaah.status_perkawinan;
+                        document.querySelector('.jamaah-mahram-name').textContent = jamaah.nama_mahram;
+                        document.querySelector('.jamaah-mahram-relation').textContent = jamaah.hubungan_mahram;
+                        
+                        // Physical Information
+                        document.querySelector('.jamaah-height').textContent = jamaah.tinggi_badan + ' cm';
+                        document.querySelector('.jamaah-weight').textContent = jamaah.berat_badan + ' kg';
+                        document.querySelector('.jamaah-blood').textContent = jamaah.golongan_darah;
+                        
+                        // Package Details
+                        document.querySelector('.jamaah-package-type').textContent = jamaah.jenis_paket;
+                        document.querySelector('.jamaah-program').textContent = jamaah.program_pilihan;
+                        document.querySelector('.jamaah-room-type').textContent = jamaah.type_room_pilihan;
+                        document.querySelector('.jamaah-departure').textContent = new Date(jamaah.tanggal_keberangkatan).toLocaleDateString();
+                        
+                        // Payment Information
+                        document.querySelector('.jamaah-payment-status').textContent = jamaah.payment_status;
+                        document.querySelector('.jamaah-payment-type').textContent = jamaah.invoice_payment_type || jamaah.payment_type;
+                        document.querySelector('.jamaah-payment-amount').textContent = jamaah.payment_total ? 
+                            new Intl.NumberFormat('id-ID', { style: 'currency', currency: jamaah.jenis_paket === 'Haji' ? 'USD' : 'IDR' }).format(jamaah.payment_total) : '-';
+                        document.querySelector('.jamaah-payment-remaining').textContent = jamaah.payment_remaining ?
+                            new Intl.NumberFormat('id-ID', { style: 'currency', currency: jamaah.jenis_paket === 'Haji' ? 'USD' : 'IDR' }).format(jamaah.payment_remaining) : '-';
+                        
+                        // Document Information
+                        document.querySelector('.jamaah-passport-name').textContent = jamaah.nama_paspor;
+                        document.querySelector('.jamaah-passport-number').textContent = jamaah.no_paspor;
+                        document.querySelector('.jamaah-passport-issue-place').textContent = jamaah.tempat_pembuatan_paspor;
+                    })
+                    .catch(error => console.error('Error:', error));
             });
         });
 

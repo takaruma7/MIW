@@ -25,24 +25,7 @@ $paketData = getAllPackages($conn);
             </div>
         </div>
 
-        <div class="row mt-3">
-            <div class="col-12">
-                <ul class="nav nav-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link" href="admin_pending.php">Pending Registrations</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="admin_crud.php">Full Database CRUD</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="admin_manifest.php">Manifests</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="admin_paket.php">Paket Management</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
+        <?php include 'admin_nav.php'; ?>
 
         <div class="row mt-3">
             <div class="col-12">
@@ -259,18 +242,34 @@ $paketData = getAllPackages($conn);
                         </div>
 
                         <div class="hotel-container mb-3">
-                            <h5>Additional Hotels</h5>
-                            <div id="hotelsContainer">
-                                <!-- Additional hotels will be added here -->
+                            <h5>Hotel Contract Numbers (HCN)</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Medinah HCN</label>
+                                    <input type="text" class="form-control" name="hcn_medinah" placeholder="e.g., MAD-HJ2026-7421">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Makkah HCN</label>
+                                    <input type="text" class="form-control" name="hcn_makkah" placeholder="e.g., MAK-HJ2026-9156">
+                                </div>
                             </div>
-                            <button type="button" id="addHotel" class="btn btn-sm btn-secondary mt-2">Add Hotel</button>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">HCN Issued Date</label>
+                                    <input type="date" class="form-control" name="hcn_issued_date">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">HCN Expiry Date</label>
+                                    <input type="date" class="form-control" name="hcn_expiry_date">
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <label class="form-label">HCN (Hotel Confirmation Number)</label>
-                                <input type="text" class="form-control" name="hcn">
+                        <div class="hotel-container mb-3">
+                            <h5>Additional Hotels</h5>
+                            <div id="hotelsContainer">
                             </div>
+                            <button type="button" id="addHotel" class="btn btn-sm btn-secondary mt-2">Add Hotel</button>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -375,18 +374,34 @@ $paketData = getAllPackages($conn);
                         </div>
 
                         <div class="hotel-container mb-3">
-                            <h5>Additional Hotels</h5>
-                            <div id="editHotelsContainer">
-                                <!-- Additional hotels will be added here dynamically -->
+                            <h5>Hotel Contract Numbers (HCN)</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Medinah HCN</label>
+                                    <input type="text" class="form-control" name="hcn_medinah" id="edit_hcn_medinah" placeholder="e.g., MAD-HJ2026-7421">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Makkah HCN</label>
+                                    <input type="text" class="form-control" name="hcn_makkah" id="edit_hcn_makkah" placeholder="e.g., MAK-HJ2026-9156">
+                                </div>
                             </div>
-                            <button type="button" id="addEditHotel" class="btn btn-sm btn-secondary mt-2">Add Hotel</button>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">HCN Issued Date</label>
+                                    <input type="date" class="form-control" name="hcn_issued_date" id="edit_hcn_issued_date">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">HCN Expiry Date</label>
+                                    <input type="date" class="form-control" name="hcn_expiry_date" id="edit_hcn_expiry_date">
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-12">
-                                <label class="form-label">HCN (Hotel Confirmation Number)</label>
-                                <input type="text" class="form-control" name="hcn" id="edit_hcn">
+                        <div class="hotel-container mb-3">
+                            <h5>Additional Hotels</h5>
+                            <div id="editHotelsContainer">
                             </div>
+                            <button type="button" id="addEditHotel" class="btn btn-sm btn-secondary mt-2">Add Hotel</button>
                         </div>
                     </div>
                     <div class="modal-footer">

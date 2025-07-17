@@ -481,3 +481,43 @@ function sendCancellationEmail($cancellationData, $files) {
         return false;
     }
 }
+
+/**
+ * Send document upload notification email to admin
+ */
+function sendDocumentUploadEmail($jamaahData, $files) {
+    try {
+        $mail = configurePHPMailer();
+        $mail->addAddress(ADMIN_EMAIL);
+        
+        // Set email subject
+        $mail->Subject = 'Document Uploads - ' . $jamaahData['nama'] . ' (' . $jamaahData['nik'] . ')';
+        
+        // Build email content
+        $content = "<h3>Document Uploads for Jamaah</h3>";
+        $content .= "<p><strong>Name:</strong> " . htmlspecialchars($jamaahData['nama']) . "</p>";
+        $content .= "<p><strong>NIK:</strong> " . htmlspecialchars($jamaahData['nik']) . "</p>";
+        $content .= "<p><strong>Documents Uploaded:</strong></p><ul>";
+        
+        // Add files as attachments
+        foreach ($files as $docType => $fileData) {
+            if (!empty($fileData['tmp_name']) && !empty($fileData['name'])) {
+                $filename = $jamaahData['nik'] . '_' . $docType . '_' . date('Ymd_His') . '_' . $fileData['name'];
+                $mail->addAttachment($fileData['tmp_name'], $filename);
+                $content .= "<li>" . ucwords(str_replace('_', ' ', $docType)) . "</li>";
+            }
+        }
+        $content .= "</ul>";
+        
+        // Set email content
+        $mail->isHTML(true);
+        $mail->Body = buildEmailTemplate('Document Uploads', $content);
+        
+        // Send email
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("Email send failed: " . $e->getMessage());
+        return false;
+    }
+}

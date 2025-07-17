@@ -13,7 +13,24 @@ function handlePackageOperations($conn) {
         $base_price_double = $_POST['base_price_double'];
         $hotel_medinah = $_POST['hotel_medinah'] ?? '';
         $hotel_makkah = $_POST['hotel_makkah'] ?? '';
-        $hcn = $_POST['hcn'] ?? '';
+
+        // Process HCN data
+        $hcnData = [
+            'medinah' => $_POST['hcn_medinah'] ?? '',
+            'makkah' => $_POST['hcn_makkah'] ?? '',
+            'additional' => [],
+            'issued_date' => $_POST['hcn_issued_date'] ?? '',
+            'expiry_date' => $_POST['hcn_expiry_date'] ?? ''
+        ];
+
+        // Process additional HCN codes if they exist
+        if (isset($_POST['additional_hotels'])) {
+            foreach ($_POST['additional_hotels'] as $index => $hotel) {
+                if (!empty($hotel['hcn'])) {
+                    $hcnData['additional'][] = $hotel['hcn'];
+                }
+            }
+        }
 
         // Process room numbers
         $medinahRooms = [
@@ -95,7 +112,7 @@ function handlePackageOperations($conn) {
             json_encode($makkahRooms),
             json_encode($additionalHotelsRooms),
             implode(',', $roomPrefixes),
-            $hcn
+            json_encode($hcnData)
         ]);
 
         $_SESSION['message'] = "Package added successfully!";
@@ -115,7 +132,24 @@ function handlePackageOperations($conn) {
         $base_price_double = $_POST['base_price_double'];
         $hotel_medinah = $_POST['hotel_medinah'] ?? '';
         $hotel_makkah = $_POST['hotel_makkah'] ?? '';
-        $hcn = $_POST['hcn'] ?? '';
+
+        // Process HCN data
+        $hcnData = [
+            'medinah' => $_POST['hcn_medinah'] ?? '',
+            'makkah' => $_POST['hcn_makkah'] ?? '',
+            'additional' => [],
+            'issued_date' => $_POST['hcn_issued_date'] ?? '',
+            'expiry_date' => $_POST['hcn_expiry_date'] ?? ''
+        ];
+
+        // Process additional HCN codes if they exist
+        if (isset($_POST['additional_hotels'])) {
+            foreach ($_POST['additional_hotels'] as $index => $hotel) {
+                if (!empty($hotel['hcn'])) {
+                    $hcnData['additional'][] = $hotel['hcn'];
+                }
+            }
+        }
 
         // Process room numbers
         $medinahRooms = [
@@ -197,7 +231,7 @@ function handlePackageOperations($conn) {
             json_encode($makkahRooms),
             json_encode($additionalHotelsRooms),
             implode(',', $roomPrefixes),
-            $hcn,
+            json_encode($hcnData),
             $pak_id
         ]);
 

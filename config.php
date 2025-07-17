@@ -1,4 +1,3 @@
-
 <?php
 // Database configuration
 define('DB_HOST', 'localhost');
@@ -18,6 +17,7 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false
         ]
     );
+    $pdo = $conn; // Ensure compatibility with files using $pdo
 } catch(PDOException $e) {
     error_log("Connection failed: " . $e->getMessage());
     die("Connection failed. Please try again later.");
@@ -65,6 +65,7 @@ try {
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
         ]
     );
+    $pdo = $conn; // Ensure compatibility with files using $pdo
 } catch (PDOException $e) {
     // Log error and show user-friendly message
     error_log("Database connection failed: " . $e->getMessage());

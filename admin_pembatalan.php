@@ -2,10 +2,10 @@
 require_once 'config.php';
 
 // Set default sorting
-$sort = $_GET['sort'] ?? 'nik';
-$order = $_GET['order'] ?? 'asc';
+$sort = $_GET['sort'] ?? 'kwitansi_uploaded_at';
+$order = $_GET['order'] ?? 'desc';
 $validSortColumns = ['nik', 'nama', 'no_telp', 'email', 'kwitansi_uploaded_at', 'proof_uploaded_at'];
-$sort = in_array($sort, $validSortColumns) ? $sort : 'nik';
+$sort = in_array($sort, $validSortColumns) ? $sort : 'kwitansi_uploaded_at';
 $order = $order === 'desc' ? 'desc' : 'asc';
 
 // Pagination setup
@@ -14,12 +14,16 @@ $page = $_GET['page'] ?? 1;
 $offset = ($page - 1) * $recordsPerPage;
 
 // Get total records count
-$countStmt = $conn->query("SELECT COUNT(*) FROM data_pembatalan");
+$countStmt = $conn->query("SELECT COUNT(*) FROM data_pembatalan p JOIN data_jamaah j ON p.nik = j.nik");
 $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $recordsPerPage);
 
 // Get records with sorting and pagination
-$query = "SELECT * FROM data_pembatalan ORDER BY $sort $order LIMIT :offset, :per_page";
+$query = "SELECT p.*, j.nama, j.pak_id 
+          FROM data_pembatalan p
+          JOIN data_jamaah j ON p.nik = j.nik 
+          ORDER BY p.$sort $order 
+          LIMIT :offset, :per_page";
 $stmt = $conn->prepare($query);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->bindValue(':per_page', $recordsPerPage, PDO::PARAM_INT);
@@ -42,6 +46,8 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="admin-header">
             <h2><i class="bi bi-x-circle-fill"></i> Data Pembatalan</h2>
         </div>
+
+        <?php include 'admin_nav.php'; ?>
 
         <div class="table-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -167,6 +173,9 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <!-- Content will be loaded via AJAX -->
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="verifyCancellation()" id="verifyBtn">
+                        <i class="bi bi-check-circle"></i> Verify Cancellation
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
@@ -192,7 +201,10 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             window.location.href = `?sort=<?= $sort ?>&order=<?= $order ?>&per_page=${value}`;
         }
         
+        let currentNik = '';
+        
         function viewDetails(nik) {
+            currentNik = nik; // Store the NIK for verification
             fetch(`get_pembatalan_details.php?nik=${nik}`)
                 .then(response => response.text())
                 .then(data => {
@@ -221,6 +233,46 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Export the workbook
             XLSX.writeFile(wb, `Data_Pembatalan_MIW_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function verifyCancellation() {
+            if (!currentNik) {
+                alert('Error: NIK tidak valid');
+                return;
+            }
+
+            if (!confirm('Apakah Anda yakin ingin memverifikasi pembatalan ini? Email konfirmasi akan dikirim ke jamaah dan data akan dihapus.')) {
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+            fetch('verify_cancellation.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `nik=${encodeURIComponent(currentNik)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Pembatalan berhasil diverifikasi dan email konfirmasi telah dikirim');
+                    window.location.reload(); // Refresh the page to update the table
+                } else {
+                    alert('Error: ' + (data.message || 'Terjadi kesalahan saat memproses pembatalan'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat memproses pembatalan');
+            })
+            .finally(() => {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '<i class="bi bi-check-circle"></i> Verify Cancellation';
+            });
         }
     </script>
 </body>

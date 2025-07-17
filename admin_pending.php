@@ -317,6 +317,8 @@ try {
             </div>
         </div>
 
+        <?php include 'admin_nav.php'; ?>
+
         <div class="row mt-3">
             <div class="col-12">
                 <?php if (isset($_SESSION['error'])): ?>
