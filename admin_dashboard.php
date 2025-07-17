@@ -154,8 +154,6 @@ if (isset($_GET['nik'])) {
             </div>
         </header>
 
-        <?php include 'admin_nav.php'; ?>
-
         <!-- Records Per Page Selector -->
         <div class="records-per-page d-flex justify-content-end mb-3">
             <label for="recordsPerPage">Records per page:</label>
@@ -256,9 +254,9 @@ if (isset($_GET['nik'])) {
                                     <td><?= htmlspecialchars($jamaah['nama']) ?></td>
                                     <td><?= htmlspecialchars($jamaah['program_pilihan']) ?></td>
                                     <td><span class="badge bg-info"><?= htmlspecialchars($jamaah['payment_type']) ?></span></td>
-                                    <td><?= is_null($jamaah['payment_total']) ? '0.00' : number_format($jamaah['payment_total'], 2) ?></td>
-                                    <td><?= is_null($jamaah['total_uang_masuk']) ? '0.00' : number_format($jamaah['total_uang_masuk'], 2) ?></td>
-                                    <td><?= is_null($jamaah['payment_remaining']) ? '0.00' : number_format($jamaah['payment_remaining'], 2) ?></td>
+                                    <td><?= number_format($jamaah['payment_total'], 2) ?></td>
+                                    <td><?= number_format($jamaah['total_uang_masuk'], 2) ?></td>
+                                    <td><?= number_format($jamaah['payment_remaining'], 2) ?></td>
                                     <td><?= date('d M Y H:i', strtotime($jamaah['payment_verified_at'])) ?></td>
                                     <td><?= htmlspecialchars($jamaah['payment_verified_by']) ?></td>
                                     <td>
@@ -292,7 +290,7 @@ if (isset($_GET['nik'])) {
                                     <th>Program</th>
                                     <th>Payment Type</th>
                                     <th>Amount</th>
-                                    <th>Method</th>
+                                    <th>Bank</th>
                                     <th>Account Name</th>
                                     <th>Payment Date</th>
                                     <th>Uploaded At</th>
@@ -306,7 +304,7 @@ if (isset($_GET['nik'])) {
                                     <td><?= htmlspecialchars($jamaah['nama']) ?></td>
                                     <td><?= htmlspecialchars($jamaah['program_pilihan']) ?></td>
                                     <td><span class="badge bg-warning"><?= htmlspecialchars($jamaah['payment_type']) ?></span></td>
-                                    <td><?= is_null($jamaah['payment_total']) ? '0.00' : number_format($jamaah['payment_total'], 2) ?></td>
+                                    <td><?= number_format($jamaah['payment_total'], 2) ?></td>
                                     <td><?= htmlspecialchars($jamaah['payment_method']) ?></td>
                                     <td><?= htmlspecialchars($jamaah['transfer_account_name']) ?></td>
                                     <td><?= date('d M Y', strtotime($jamaah['payment_date'])) ?></td>
@@ -315,11 +313,11 @@ if (isset($_GET['nik'])) {
                                         <button class="btn btn-sm btn-info" onclick="viewDetails('<?= $jamaah['nik'] ?>')">
                                             <i class="bi bi-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-success verify-payment" data-nik="<?= $jamaah['nik'] ?>">
-                                            <i class="bi bi-check-circle"></i>
+                                        <button class="btn btn-sm btn-success" onclick="verifyPayment('<?= $jamaah['nik'] ?>')">
+                                            <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger reject-payment" data-nik="<?= $jamaah['nik'] ?>">
-                                            <i class="bi bi-x-circle"></i>
+                                        <button class="btn btn-sm btn-danger" onclick="rejectPayment('<?= $jamaah['nik'] ?>')">
+                                            <i class="bi bi-x-lg"></i>
                                         </button>
                                     </td>
                                 </tr>

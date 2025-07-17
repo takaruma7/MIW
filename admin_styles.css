@@ -119,12 +119,31 @@ body {
 /* Tables */
 .table {
     margin-bottom: 0;
+    width: 100%;
+}
+
+.table thead {
+    width: 100%;
 }
 
 .table thead th {
     background-color: #343a40;
     color: white;
     border-bottom: 2px solid #dee2e6;
+}
+
+.table-responsive {
+    width: 100%;
+}
+
+.table.package-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.package-table th, 
+.package-table td {
+    word-wrap: break-word;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
