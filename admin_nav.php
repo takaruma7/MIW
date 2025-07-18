@@ -6,17 +6,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <ul class="nav nav-tabs">
             <li class="nav-item">
                 <a class="nav-link <?= $current_page === 'admin_pending.php' ? 'active' : '' ?>" href="admin_pending.php">
-                    Pending Registrations
+                    Pendaftar Baru
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link <?= $current_page === 'admin_dashboard.php' ? 'active' : '' ?>" href="admin_dashboard.php">
-                    Dashboard
+                    Dasbor Admin
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link <?= $current_page === 'admin_paket.php' ? 'active' : '' ?>" href="admin_paket.php">
-                    Package Management
+                    Manajemen Paket
                 </a>
             </li>
             <li class="nav-item">

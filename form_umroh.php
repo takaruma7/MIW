@@ -64,7 +64,7 @@ if ($biaya_paket_value !== '') {
             }
             
             if (success) {
-                alert("Pendaftaran berhasil! Kami akan mengirimkan konfirmasi via email.");
+                alert("Pendaftaran berhasil! Kami akan mengirimkan konfirmasi melalui email.");
             }
         };
 
@@ -303,10 +303,10 @@ if ($biaya_paket_value !== '') {
             <label for="kode_pos">Kode Pos:</label>
             <input type="text" id="kode_pos" name="kode_pos" maxlength="5">
 
-            <label for="no_telp">No. Telp/HP:</label>
+            <label for="no_telp">Nomor Telepon/HP:</label>
             <input type="text" id="no_telp" name="no_telp" required>
 
-            <label for="email">Email:</label>
+            <label for="email">Alamat Email:</label>
             <input type="email" id="email" name="email" required>
 
             <label for="tinggi_badan">Tinggi Badan (cm):</label>
@@ -321,27 +321,27 @@ if ($biaya_paket_value !== '') {
             <label for="nama_ibu">Nama Ibu:</label>
             <input type="text" id="nama_ibu" name="nama_ibu" required>
 
-            <h3>Informasi Darurat</h3>
+            <h3>Kontak Darurat</h3>
             <label for="emergency_nama">Nama Kontak Darurat:</label>
             <input type="text" id="emergency_nama" name="emergency_nama">
 
-            <label for="emergency_hp">No. HP Darurat:</label>
+            <label for="emergency_hp">Nomor HP Darurat:</label>
             <input type="text" id="emergency_hp" name="emergency_hp">
 
-            <h3>Informasi Paspor</h3>
-            <label for="nama_paspor">Nama di Paspor:</label>
+            <h3>Data Paspor</h3>
+            <label for="nama_paspor">Nama Lengkap di Paspor:</label>
             <input type="text" id="nama_paspor" name="nama_paspor">
 
             <label for="no_paspor">Nomor Paspor:</label>
             <input type="text" id="no_paspor" name="no_paspor">
 
-            <label for="tempat_pembuatan_paspor">Tempat Pembuatan Paspor:</label>
+            <label for="tempat_pembuatan_paspor">Tempat Dikeluarkan:</label>
             <input type="text" id="tempat_pembuatan_paspor" name="tempat_pembuatan_paspor">
 
-            <label for="tanggal_pengeluaran_paspor">Tanggal Pengeluaran Paspor:</label>
+            <label for="tanggal_pengeluaran_paspor">Tanggal Dikeluarkan:</label>
             <input type="date" id="tanggal_pengeluaran_paspor" name="tanggal_pengeluaran_paspor">
 
-            <label for="tanggal_habis_berlaku">Tanggal Habis Berlaku Paspor:</label>
+            <label for="tanggal_habis_berlaku">Tanggal Masa Berlaku:</label>
             <input type="date" id="tanggal_habis_berlaku" name="tanggal_habis_berlaku">
 
             <h3>Informasi Vaksinasi (Tidak Wajib Diisi)</h3>

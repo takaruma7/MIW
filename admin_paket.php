@@ -13,7 +13,7 @@ $paketData = getAllPackages($conn);
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard - Paket Management</title>
+    <title>Dasbor Admin - Manajemen Paket</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="admin_styles.css">
 </head>
@@ -39,7 +39,7 @@ $paketData = getAllPackages($conn);
                     <div class="d-flex justify-content-between mb-3">
                         <div class="btn-group">
                             <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                Filter by Package Type
+                                Filter berdasarkan Tipe Paket
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="?type=all">All Packages</a></li>

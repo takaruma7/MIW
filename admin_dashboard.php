@@ -154,6 +154,8 @@ if (isset($_GET['nik'])) {
             </div>
         </header>
 
+        <?php include 'admin_nav.php'; ?>
+
         <!-- Records Per Page Selector -->
         <div class="records-per-page d-flex justify-content-end mb-3">
             <label for="recordsPerPage">Records per page:</label>

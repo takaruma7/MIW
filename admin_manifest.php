@@ -40,7 +40,7 @@ $packages = $conn->query("SELECT * FROM data_paket ORDER BY jenis_paket, program
                     <div class="tab-pane fade show active" id="manifest" role="tabpanel">
                         <?php include 'tab_manifest.php'; ?>
                     </div>
-                    <div class="tab-pane fade show active" id="kelengkapan" role="tabpanel">
+                    <div class="tab-pane fade active" id="kelengkapan" role="tabpanel">
                         <?php include 'tab_kelengkapan.php'; ?>
                     </div>
                 </div>
