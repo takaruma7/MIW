@@ -37,9 +37,20 @@ try {
         $files[$file] = $_FILES[$file];
     }
 
-    // Send email with attachments
-    if (!sendDocumentUploadEmail($jamaah, $files)) {
-        throw new Exception('Failed to send email');
+    require_once 'upload_handler.php';
+    $uploader = new UploadHandler('documents');
+    $uploadedPaths = [];
+    
+    foreach ($files as $fileField => $file) {
+        $result = $uploader->handleUpload(
+            $file,
+            $jamaah['nik'] . '_' . $fileField . '_'
+        );
+        
+        if (!$result['success']) {
+            throw new Exception("Failed to upload $fileField: " . $result['message']);
+        }
+        $uploadedPaths[$fileField] = $result['path'];
     }
 
     // Update document timestamps
@@ -48,11 +59,11 @@ try {
         UPDATE data_jamaah SET
             bk_kuning = ?,
             foto = ?,
-            fc_ktp_uploaded_at = ?,
-            fc_ijazah_uploaded_at = ?,
-            fc_kk_uploaded_at = ?,
-            fc_bk_nikah_uploaded_at = ?,
-            fc_akta_lahir_uploaded_at = ?
+            fc_ktp_path = ?,
+            fc_ijazah_path = ?,
+            fc_kk_path = ?,
+            fc_bk_nikah_path = ?,
+            fc_akta_lahir_path = ?
         WHERE nik = ?
     ");
 
@@ -73,11 +84,11 @@ try {
         'timestamps' => [
             'bk_kuning' => $currentTime,
             'foto' => $currentTime,
-            'fc_ktp_uploaded_at' => $currentTime,
-            'fc_ijazah_uploaded_at' => $currentTime,
-            'fc_kk_uploaded_at' => $currentTime,
-            'fc_bk_nikah_uploaded_at' => $currentTime,
-            'fc_akta_lahir_uploaded_at' => $currentTime
+            'fc_ktp_path' => $currentTime,
+            'fc_ijazah_path' => $currentTime,
+            'fc_kk_path' => $currentTime,
+            'fc_bk_nikah_path' => $currentTime,
+            'fc_akta_lahir_path' => $currentTime
         ]
     ]);
 

@@ -29,7 +29,10 @@ $packages = $conn->query("SELECT * FROM data_paket ORDER BY jenis_paket, program
             <div class="col-12">
                 <ul class="nav nav-tabs" id="manifestTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="manifest-tab" data-bs-toggle="tab" data-bs-target="#manifest" type="button" role="tab">Manifest</button>
+                        <button class="nav-link active" id="umroh-manifest-tab" data-bs-toggle="tab" data-bs-target="#umroh-manifest" type="button" role="tab">Manifest Umroh</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="haji-manifest-tab" data-bs-toggle="tab" data-bs-target="#haji-manifest" type="button" role="tab">Manifest Haji</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="kelengkapan-tab" data-bs-toggle="tab" data-bs-target="#kelengkapan" type="button" role="tab">Kelengkapan</button>
@@ -37,10 +40,13 @@ $packages = $conn->query("SELECT * FROM data_paket ORDER BY jenis_paket, program
                 </ul>
                 
                 <div class="tab-content" id="manifestTabsContent">
-                    <div class="tab-pane fade show active" id="manifest" role="tabpanel">
-                        <?php include 'tab_manifest.php'; ?>
+                    <div class="tab-pane fade show active" id="umroh-manifest" role="tabpanel">
+                        <?php include 'manifest_umroh.php'; ?>
                     </div>
-                    <div class="tab-pane fade active" id="kelengkapan" role="tabpanel">
+                    <div class="tab-pane fade" id="haji-manifest" role="tabpanel">
+                        <?php include 'manifest_haji.php'; ?>
+                    </div>
+                    <div class="tab-pane fade" id="kelengkapan" role="tabpanel">
                         <?php include 'tab_kelengkapan.php'; ?>
                     </div>
                 </div>

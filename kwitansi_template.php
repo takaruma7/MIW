@@ -43,12 +43,12 @@ $terbilang = terbilang($total_uang_masuk, $currency);
 function formatCurrency($value, $curr = 'IDR') {
     // If already numeric, format directly
     if (is_numeric($value)) {
-        return ($curr === 'USD' ? '$ ' : 'Rp ') . number_format($value, 0, ',', '.');
+        return ($curr === 'USD' ? '$ ' : 'Rp ') . number_format($value ?? 0, 0, ',', '.');
     }
 
     // Remove common formatting if string input
     $cleaned = preg_replace('/[^0-9]/', '', $value);
-    return ($curr === 'USD' ? '$ ' : 'Rp ') . number_format((float)$cleaned, 0, ',', '.');
+    return ($curr === 'USD' ? '$ ' : 'Rp ') . number_format((float)($cleaned ?? 0), 0, ',', '.');
 }
 
 

@@ -24,9 +24,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Validate NIK (16 digits)
+        // Validate NIK (16 digits and uniqueness)
         if (!preg_match('/^\d{16}$/', $_POST['nik'])) {
             $errors[] = "NIK harus 16 digit angka.";
+        } else {
+            // Check if NIK already exists
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM data_jamaah WHERE nik = ?");
+            $stmt->execute([$_POST['nik']]);
+            if ($stmt->fetchColumn() > 0) {
+                $errors[] = "Mohon maaf, pendaftaran tidak dapat dilanjutkan.";
+            }
         }
         
         // Validate email
@@ -34,9 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Format email tidak valid.";
         }
         
-        // Validate file uploads (but don't save to server)
-        $requiredFiles = ['kk_path', 'ktp_path'];
+        // Upload and validate files
+        require_once 'upload_handler.php';
+        $uploadHandler = new UploadHandler();
         $uploadedFiles = [];
+        $requiredFiles = ['kk_path', 'ktp_path'];
         
         foreach ($requiredFiles as $fileField) {
             if (!isset($_FILES[$fileField]) || $_FILES[$fileField]['error'] !== UPLOAD_ERR_OK) {
@@ -44,30 +53,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue;
             }
             
-            $file = $_FILES[$fileField];
-            $allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-            $maxSize = 2 * 1024 * 1024; // 2MB
+            $documentType = str_replace('_path', '', $fileField);
+            $customName = $uploadHandler->generateCustomFilename($_POST['nik'], $documentType, $_POST['pak_id']);
+            $uploadResult = $uploadHandler->handleUpload($_FILES[$fileField], 'documents', $customName);
             
-            if (!in_array($file['type'], $allowedTypes)) {
-                $errors[] = "File $fileField harus berupa JPG, PNG, atau PDF.";
+            if (!$uploadResult) {
+                $errors = array_merge($errors, $uploadHandler->getErrors());
+                continue;
             }
             
-            if ($file['size'] > $maxSize) {
-                $errors[] = "Ukuran file $fileField tidak boleh melebihi 2MB.";
-            }
-            
-            // Store file info for email attachment (don't move to server)
-            $uploadedFiles[$fileField] = $file;
+            $uploadedFiles[$fileField] = $uploadResult['path'];
         }
         
         // Process optional paspor file
         if (isset($_FILES['paspor_path']) && $_FILES['paspor_path']['error'] === UPLOAD_ERR_OK) {
-            $file = $_FILES['paspor_path'];
-            $allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-            $maxSize = 2 * 1024 * 1024; // 2MB
+            $customName = $uploadHandler->generateCustomFilename($_POST['nik'], 'paspor', $_POST['pak_id']);
+            $uploadResult = $uploadHandler->handleUpload($_FILES['paspor_path'], 'documents', $customName);
             
-            if (in_array($file['type'], $allowedTypes) && $file['size'] <= $maxSize) {
-                $uploadedFiles['paspor_path'] = $file;
+            if ($uploadResult) {
+                $uploadedFiles['paspor_path'] = $uploadResult['path'];
             }
         }
         
@@ -113,12 +117,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'created_at' => $currentDateTime,
                 'updated_at' => $currentDateTime,
                 // Set upload timestamps for files (even though we're not saving them to server)
-                'kk_uploaded_at' => isset($_FILES['kk_path']) ? $currentDateTime : null,
-                'ktp_uploaded_at' => isset($_FILES['ktp_path']) ? $currentDateTime : null,
-                'paspor_uploaded_at' => isset($_FILES['paspor_path']) && $_FILES['paspor_path']['error'] === UPLOAD_ERR_OK ? $currentDateTime : null,
+                'kk_path' => isset($_FILES['kk_path']) ? $currentDateTime : null,
+                'ktp_path' => isset($_FILES['ktp_path']) ? $currentDateTime : null,
+                'paspor_path' => isset($uploadedFiles['paspor_path']) ? $currentDateTime : null,
+                'kk_path' => $uploadedFiles['kk_path'] ?? null,
+                'ktp_path' => $uploadedFiles['ktp_path'] ?? null,
+                'paspor_path' => $uploadedFiles['paspor_path'] ?? null,
                 'payment_type' => $_POST['payment_type'] ?? null,
                 'payment_method' => $_POST['payment_method'] ?? null,
-                // Note: payment_uploaded_at is not set here as it's for payment verification
+                // Note: payment_path is not set here as it's for payment verification
             ];
             
             // Prepare SQL query (exclude file path fields)
@@ -151,13 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'currency' => $_POST['currency'] ?? 'IDR'
             ];
 
-            // Send emails with attachments (files are not saved to server)
-            $emailSent = sendRegistrationEmail($emailData, $uploadedFiles, 'Umroh');
-
-            if (!$emailSent) {
-                error_log("Failed to send registration email for NIK: " . $data['nik']);
-            }
-            
+            // All file uploads and database operations successful
             $conn->commit();
             $success = true;
         }

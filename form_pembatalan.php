@@ -52,7 +52,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : null;
             }
 
             // File validation
-            const kwitansiFile = document.getElementById('kwitansi_uploaded_at').files[0];
+            const kwitansiFile = document.getElementById('kwitansi_path').files[0];
             if (!kwitansiFile) {
                 alert('Harap upload kwitansi pembayaran');
                 return false;
@@ -80,6 +80,7 @@ $success = isset($_GET['success']) ? $_GET['success'] : null;
     </header>
     <main>
         <form action="submit_pembatalan.php" method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+            <input type="hidden" name="MAX_FILE_SIZE" value="2097152">
             <div class="cancellation-policy">
                 <h2>Kebijakan Pembatalan Madinah Iman Wisata</h2>
                 
@@ -195,11 +196,11 @@ $success = isset($_GET['success']) ? $_GET['success'] : null;
             <textarea id="alasan" name="alasan"><?php echo isset($inputData['alasan']) ? $inputData['alasan'] : ''; ?></textarea>
 
             <h3>Upload Dokumen</h3>
-            <label for="kwitansi_uploaded_at">Kwitansi Pembayaran (max 2MB):</label>
-            <input type="file" id="kwitansi_uploaded_at" name="kwitansi_uploaded_at" accept=".pdf,.jpg,.jpeg,.png" required>
+            <label for="kwitansi_path">Kwitansi Pembayaran (max 2MB):</label>
+            <input type="file" id="kwitansi_path" name="kwitansi_path" accept=".pdf,.jpg,.jpeg,.png" required>
 
-            <label for="proof_uploaded_at">Bukti Pembayaran (max 2MB):</label>
-            <input type="file" id="proof_uploaded_at" name="proof_uploaded_at" accept=".pdf,.jpg,.jpeg,.png" required>
+            <label for="proof_path">Bukti Pembayaran (max 2MB):</label>
+            <input type="file" id="proof_path" name="proof_path" accept=".pdf,.jpg,.jpeg,.png" required>
 
             <button type="submit">Ajukan Pembatalan</button>
         </form>

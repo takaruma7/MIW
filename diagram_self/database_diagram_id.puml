@@ -73,8 +73,8 @@ table(data_pembatalan) {
     tanggal_pengajuan: timestamp
     status: enum
     jumlah_pengembalian: decimal(15,2)
-    kwitansi_uploaded_at: timestamp
-    bukti_uploaded_at: timestamp
+    kwitansi_path: timestamp
+    bukti_path: timestamp
     verified_at: timestamp
     created_at: timestamp
     updated_at: timestamp

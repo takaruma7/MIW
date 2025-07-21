@@ -86,9 +86,9 @@ $paketData = getAllPackages($conn);
                                     <td><?= $package['program_pilihan'] ?></td>
                                     <td><?= $package['tanggal_keberangkatan'] ?></td>
                                     <td>
-                                        <strong>Quad:</strong> <?= $package['currency'] == 'USD' ? '$' : 'Rp ' ?><?= number_format($package['base_price_quad'], 0, ',', '.') ?><br>
-                                        <strong>Triple:</strong> <?= $package['currency'] == 'USD' ? '$' : 'Rp ' ?><?= number_format($package['base_price_triple'], 0, ',', '.') ?><br>
-                                        <strong>Double:</strong> <?= $package['currency'] == 'USD' ? '$' : 'Rp ' ?><?= number_format($package['base_price_double'], 0, ',', '.') ?>
+                                        <strong>Quad:</strong> <?= $package['currency'] == 'USD' ? '$' : 'Rp ' ?><?= number_format($package['base_price_quad'] ?? 0, 0, ',', '.') ?><br>
+                                        <strong>Triple:</strong> <?= $package['currency'] == 'USD' ? '$' : 'Rp ' ?><?= number_format($package['base_price_triple'] ?? 0, 0, ',', '.') ?><br>
+                                        <strong>Double:</strong> <?= $package['currency'] == 'USD' ? '$' : 'Rp ' ?><?= number_format($package['base_price_double'] ?? 0, 0, ',', '.') ?>
                                     </td>
                                     <td>
                                         <?php

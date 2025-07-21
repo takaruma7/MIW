@@ -105,8 +105,8 @@ table(data_pembatalan) {
     no_telp: varchar(20)
     email: varchar(50)
     alasan: text
-    kwitansi_uploaded_at: timestamp
-    proof_uploaded_at: timestamp
+    kwitansi_path: timestamp
+    proof_path: timestamp
 }
 
 ' Relationships

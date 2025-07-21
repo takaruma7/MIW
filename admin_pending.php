@@ -262,6 +262,14 @@ try {
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="admin_styles.css" rel="stylesheet">
     <style>
+        .file-actions {
+            display: inline-flex;
+            gap: 0.5rem;
+        }
+        .preview-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
         .modal-xl {
             max-width: 1200px;
         }
@@ -363,7 +371,7 @@ try {
                                             <td><?= htmlspecialchars($registration['type_room_pilihan']) ?></td>
                                             <td>
                                                 <?= $registration['currency'] ?> 
-                                                <?= number_format($registration['package_price'], 2) ?>
+                                                <?= number_format($registration['package_price'] ?? 0, 2) ?>
                                             </td>
                                             <td>
                                                 <button type="button" 
@@ -469,7 +477,7 @@ try {
                                                 <div class="col-sm-4 fw-bold">Biaya Paket</div>
                                                 <div class="col-sm-8">
                                                     <?= htmlspecialchars($registration['currency']) ?> 
-                                                    <?= number_format($registration['package_price'], 0, ',', '.') ?>
+                                                    <?= number_format($registration['package_price'] ?? 0, 0, ',', '.') ?>
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
@@ -517,27 +525,67 @@ try {
 
                                             <h6 class="fw-bold mb-3">Status Dokumen</h6>
                                             <div class="row mb-2">
-                                                <div class="col-sm-6 fw-bold">Kartu Keluarga (KK)</div>
-                                                <div class="col-sm-6">
-                                                    <?= isset($registration['kk_uploaded_at']) ? date('d/m/Y H:i', strtotime($registration['kk_uploaded_at'])) : '-' ?>
+                                                <div class="col-sm-4 fw-bold">Kartu Keluarga (KK)</div>
+                                                <div class="col-sm-4">
+                                                    <?= $registration['kk_path'] ? basename($registration['kk_path']) : '-' ?>
+                                                </div>
+                                                <div class="col-sm-4 file-actions">
+                                                    <?php if ($registration['kk_path']): ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('<?= $registration['kk_path'] ?>', 'documents', 'preview')">
+                                                            <i class="bi bi-eye"></i> Preview
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('<?= $registration['kk_path'] ?>', 'documents', 'download')">
+                                                            <i class="bi bi-download"></i> Download
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="row mb-2">
-                                                <div class="col-sm-6 fw-bold">KTP</div>
-                                                <div class="col-sm-6">
-                                                    <?= isset($registration['ktp_uploaded_at']) ? date('d/m/Y H:i', strtotime($registration['ktp_uploaded_at'])) : '-' ?>
+                                                <div class="col-sm-4 fw-bold">KTP</div>
+                                                <div class="col-sm-4">
+                                                    <?= $registration['ktp_path'] ? basename($registration['ktp_path']) : '-' ?>
+                                                </div>
+                                                <div class="col-sm-4 file-actions">
+                                                    <?php if ($registration['ktp_path']): ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('<?= $registration['ktp_path'] ?>', 'documents', 'preview')">
+                                                            <i class="bi bi-eye"></i> Preview
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('<?= $registration['ktp_path'] ?>', 'documents', 'download')">
+                                                            <i class="bi bi-download"></i> Download
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="row mb-2">
-                                                <div class="col-sm-6 fw-bold">Paspor</div>
-                                                <div class="col-sm-6">
-                                                    <?= isset($registration['paspor_uploaded_at']) ? date('d/m/Y H:i', strtotime($registration['paspor_uploaded_at'])) : '-' ?>
+                                                <div class="col-sm-4 fw-bold">Paspor</div>
+                                                <div class="col-sm-4">
+                                                    <?= $registration['paspor_path'] ? basename($registration['paspor_path']) : '-' ?>
+                                                </div>
+                                                <div class="col-sm-4 file-actions">
+                                                    <?php if ($registration['paspor_path']): ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('<?= $registration['paspor_path'] ?>', 'documents', 'preview')">
+                                                            <i class="bi bi-eye"></i> Preview
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('<?= $registration['paspor_path'] ?>', 'documents', 'download')">
+                                                            <i class="bi bi-download"></i> Download
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="row mb-2">
-                                                <div class="col-sm-6 fw-bold">Bukti Pembayaran</div>
-                                                <div class="col-sm-6">
-                                                    <?= isset($registration['payment_uploaded_at']) ? date('d/m/Y H:i', strtotime($registration['payment_uploaded_at'])) : '-' ?>
+                                                <div class="col-sm-4 fw-bold">Bukti Pembayaran</div>
+                                                <div class="col-sm-4">
+                                                    <?= $registration['payment_path'] ? basename($registration['payment_path']) : '-' ?>
+                                                </div>
+                                                <div class="col-sm-4 file-actions">
+                                                    <?php if ($registration['payment_path']): ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('<?= $registration['payment_path'] ?>', 'payments', 'preview')">
+                                                            <i class="bi bi-eye"></i> Preview
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('<?= $registration['payment_path'] ?>', 'payments', 'download')">
+                                                            <i class="bi bi-download"></i> Download
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -556,7 +604,7 @@ try {
                                             <div class="row mb-3">
                                                 <div class="col-sm-4 fw-bold">Total Biaya Paket</div>
                                                 <div class="col-sm-8">
-                                                    <?= $registration['currency'] ?> <?= number_format($registration['package_price'], 0, ',', '.') ?>
+                                                    <?= $registration['currency'] ?> <?= number_format($registration['package_price'] ?? 0, 0, ',', '.') ?>
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
@@ -568,7 +616,7 @@ try {
                                             <div class="row mb-3">
                                                 <div class="col-sm-4 fw-bold">Bukti Transfer</div>
                                                 <div class="col-sm-8">
-                                                    <?= isset($registration['payment_uploaded_at']) ? date('d/m/Y H:i', strtotime($registration['payment_uploaded_at'])) : 'Belum diupload' ?>
+                                                    <?= isset($registration['payment_path']) ? date('d/m/Y H:i', strtotime($registration['payment_path'])) : 'Belum diupload' ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -614,10 +662,13 @@ try {
         </div>
     <?php endforeach; ?>
 
+    <?php include 'includes/file_preview_modal.php'; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="js/file_handlers.js"></script>
     
     <script>
         $(document).ready(function() {

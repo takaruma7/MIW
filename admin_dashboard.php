@@ -1,6 +1,66 @@
 <?php
 require_once 'config.php';
 
+// Function to delete jamaah and related data
+function deleteJamaahAndRelatedData($nik, $pdo) {
+    try {
+        $pdo->beginTransaction();
+        
+        // First get file paths that need to be deleted
+        $stmt = $pdo->prepare("
+            SELECT 
+                kk_path, ktp_path, paspor_path, payment_path,
+                bk_kuning_path, foto_path, fc_ktp_path, fc_ijazah_path,
+                fc_kk_path, fc_bk_nikah_path, fc_akta_lahir_path
+            FROM data_jamaah 
+            WHERE nik = ?
+        ");
+        $stmt->execute([$nik]);
+        $files = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Delete from manifest first (due to foreign key constraints)
+        $stmt = $pdo->prepare("DELETE FROM data_manifest WHERE nik = ?");
+        $stmt->execute([$nik]);
+        
+        // Delete from invoice if exists
+        $stmt = $pdo->prepare("DELETE FROM data_invoice WHERE nik = ?");
+        $stmt->execute([$nik]);
+
+        // Delete from jamaah
+        $stmt = $pdo->prepare("DELETE FROM data_jamaah WHERE nik = ?");
+        $stmt->execute([$nik]);
+
+        // Delete physical files after successful database deletion
+        foreach ($files as $path) {
+            if ($path && file_exists($_SERVER['DOCUMENT_ROOT'] . '/MIW/' . $path)) {
+                unlink($_SERVER['DOCUMENT_ROOT'] . '/MIW/' . $path);
+            }
+        }
+
+        $pdo->commit();
+        return ['success' => true, 'message' => 'Data jamaah berhasil dihapus'];
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error deleting jamaah data: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Gagal menghapus data: ' . $e->getMessage()];
+    }
+}
+
+// Handle delete request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_jamaah'])) {
+    $nik = $_POST['nik'];
+    $result = deleteJamaahAndRelatedData($nik, $pdo);
+    
+    if ($result['success']) {
+        $_SESSION['message'] = $result['message'];
+    } else {
+        $_SESSION['error'] = $result['message'];
+    }
+    
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
 // Handle AJAX request for jamaah details
 if (isset($_GET['nik']) && !empty($_GET['nik']) && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
     $stmt = $pdo->prepare("
@@ -15,6 +75,7 @@ if (isset($_GET['nik']) && !empty($_GET['nik']) && isset($_SERVER['HTTP_X_REQUES
             p.currency,
             i.invoice_id,
             i.payment_type as invoice_payment_type,
+            j.payment_path,  -- Explicitly include payment_path
             COALESCE(j.payment_total, i.payment_amount) as payment_total,
             COALESCE(j.payment_remaining, i.sisa_pembayaran) as payment_remaining,
             i.total_uang_masuk,
@@ -78,7 +139,7 @@ $stmt = $pdo->query("
     LEFT JOIN data_paket p ON j.pak_id = p.pak_id
     LEFT JOIN data_invoice i ON j.nik = i.nik
     WHERE j.payment_status = 'pending'
-    ORDER BY j.payment_uploaded_at DESC
+    ORDER BY j.payment_path DESC
 ");
 $pending_payments = $stmt->fetchAll();
 
@@ -141,6 +202,16 @@ if (isset($_GET['nik'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="admin_styles.css">
+    <style>
+        .file-actions {
+            display: inline-flex;
+            gap: 0.5rem;
+        }
+        .preview-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -256,9 +327,9 @@ if (isset($_GET['nik'])) {
                                     <td><?= htmlspecialchars($jamaah['nama']) ?></td>
                                     <td><?= htmlspecialchars($jamaah['program_pilihan']) ?></td>
                                     <td><span class="badge bg-info"><?= htmlspecialchars($jamaah['payment_type']) ?></span></td>
-                                    <td><?= number_format($jamaah['payment_total'], 2) ?></td>
-                                    <td><?= number_format($jamaah['total_uang_masuk'], 2) ?></td>
-                                    <td><?= number_format($jamaah['payment_remaining'], 2) ?></td>
+                                    <td><?= number_format($jamaah['payment_total'] ?? 0, 2) ?></td>
+                                    <td><?= number_format($jamaah['total_uang_masuk'] ?? 0, 2) ?></td>
+                                    <td><?= number_format($jamaah['payment_remaining'] ?? 0, 2) ?></td>
                                     <td><?= date('d M Y H:i', strtotime($jamaah['payment_verified_at'])) ?></td>
                                     <td><?= htmlspecialchars($jamaah['payment_verified_by']) ?></td>
                                     <td>
@@ -306,11 +377,11 @@ if (isset($_GET['nik'])) {
                                     <td><?= htmlspecialchars($jamaah['nama']) ?></td>
                                     <td><?= htmlspecialchars($jamaah['program_pilihan']) ?></td>
                                     <td><span class="badge bg-warning"><?= htmlspecialchars($jamaah['payment_type']) ?></span></td>
-                                    <td><?= number_format($jamaah['payment_total'], 2) ?></td>
+                                    <td><?= number_format($jamaah['payment_total'] ?? 0, 2) ?></td>
                                     <td><?= htmlspecialchars($jamaah['payment_method']) ?></td>
                                     <td><?= htmlspecialchars($jamaah['transfer_account_name']) ?></td>
                                     <td><?= date('d M Y', strtotime($jamaah['payment_date'])) ?></td>
-                                    <td><?= date('d M Y H:i', strtotime($jamaah['payment_uploaded_at'])) ?></td>
+                                    <td><?= date('d M Y H:i', strtotime($jamaah['payment_path'])) ?></td>
                                     <td>
                                         <button class="btn btn-sm btn-info" onclick="viewDetails('<?= $jamaah['nik'] ?>')">
                                             <i class="bi bi-eye"></i>
@@ -511,17 +582,50 @@ if (isset($_GET['nik'])) {
                                 <td class="jamaah-passport-issue-place"></td>
                             </tr>
                         </table>
+
+                        <h4 class="mt-4">Documents</h4>
+                        <table class="table">
+                            <tr>
+                                <th>KTP</th>
+                                <td class="jamaah-ktp-actions file-actions"></td>
+                            </tr>
+                            <tr>
+                                <th>KK</th>
+                                <td class="jamaah-kk-actions file-actions"></td>
+                            </tr>
+                            <tr>
+                                <th>Passport</th>
+                                <td class="jamaah-passport-actions file-actions"></td>
+                            </tr>
+                            <tr>
+                                <th>Payment Proof</th>
+                                <td class="jamaah-payment-actions file-actions"></td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <form method="POST" onsubmit="return confirmDelete()" class="me-2">
+                        <input type="hidden" name="nik" id="deleteNikInput">
+                        <button type="submit" name="delete_jamaah" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Hapus Data Jamaah
+                        </button>
+                    </form>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <?php include 'includes/file_preview_modal.php'; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/file_handlers.js"></script>
     <script>
+        function confirmDelete() {
+            return confirm('Apakah Anda yakin ingin menghapus data jamaah ini? Semua data terkait termasuk manifest, invoice, dan berkas yang diunggah akan dihapus secara permanen.');
+        }
+
         // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -565,6 +669,25 @@ if (isset($_GET['nik'])) {
                         
                         // Physical Information
                         document.querySelector('.jamaah-height').textContent = jamaah.tinggi_badan + ' cm';
+                        
+                        // File Actions
+                        const createFileActions = (path, type) => {
+                            if (!path) return 'No file uploaded';
+                            return `
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('${path}', '${type}', 'preview')">
+                                    <i class="bi bi-eye"></i> Preview
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('${path}', '${type}', 'download')">
+                                    <i class="bi bi-download"></i> Download
+                                </button>
+                            `;
+                        };
+
+                        // Update document action buttons
+                        document.querySelector('.jamaah-ktp-actions').innerHTML = createFileActions(jamaah.ktp_path, 'documents');
+                        document.querySelector('.jamaah-kk-actions').innerHTML = createFileActions(jamaah.kk_path, 'documents');
+                        document.querySelector('.jamaah-passport-actions').innerHTML = createFileActions(jamaah.paspor_path, 'documents');
+                        document.querySelector('.jamaah-payment-actions').innerHTML = createFileActions(jamaah.payment_path, 'payments');
                         document.querySelector('.jamaah-weight').textContent = jamaah.berat_badan + ' kg';
                         document.querySelector('.jamaah-blood').textContent = jamaah.golongan_darah;
                         
@@ -573,6 +696,9 @@ if (isset($_GET['nik'])) {
                         document.querySelector('.jamaah-program').textContent = jamaah.program_pilihan;
                         document.querySelector('.jamaah-room-type').textContent = jamaah.type_room_pilihan;
                         document.querySelector('.jamaah-departure').textContent = new Date(jamaah.tanggal_keberangkatan).toLocaleDateString();
+                        
+                        // Set NIK for delete form
+                        document.getElementById('deleteNikInput').value = jamaah.nik;
                         
                         // Payment Information
                         document.querySelector('.jamaah-payment-status').textContent = jamaah.payment_status;

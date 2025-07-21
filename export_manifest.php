@@ -97,14 +97,14 @@ try {
                 'No' => $counter++,
                 'Gender' => $jamaah['jenis_kelamin'] === 'Laki-laki' ? 'Mr' : 'Mrs',
                 'Nama' => $jamaah['nama'],
-                'Passport' => $jamaah['paspor_uploaded_at'] ? '✓' : '',
+                'Passport' => $jamaah['paspor_path'] ? '✓' : '',
                 'Buku Kuning' => $jamaah['bk_kuning'] ? '✓' : '',
                 'Foto' => $jamaah['foto'] ? '✓' : '',
-                'Fotocopy KTP' => $jamaah['fc_ktp_uploaded_at'] ? '✓' : '',
-                'Fotocopy Ijazah' => $jamaah['fc_ijazah_uploaded_at'] ? '✓' : '',
-                'Fotocopy Kartu Keluarga' => $jamaah['fc_kk_uploaded_at'] ? '✓' : '',
-                'Fotocopy Buku Nikah' => $jamaah['fc_bk_nikah_uploaded_at'] ? '✓' : '',
-                'Fotocopy Akta Kelahiran' => $jamaah['fc_akta_lahir_uploaded_at'] ? '✓' : '',
+                'Fotocopy KTP' => $jamaah['fc_ktp_path'] ? '✓' : '',
+                'Fotocopy Ijazah' => $jamaah['fc_ijazah_path'] ? '✓' : '',
+                'Fotocopy Kartu Keluarga' => $jamaah['fc_kk_path'] ? '✓' : '',
+                'Fotocopy Buku Nikah' => $jamaah['fc_bk_nikah_path'] ? '✓' : '',
+                'Fotocopy Akta Kelahiran' => $jamaah['fc_akta_lahir_path'] ? '✓' : '',
                 'Vaksin' => $jamaah['tanggal_vaksin_1'] ? '✓' : ''
             ];
         }

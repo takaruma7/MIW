@@ -43,12 +43,12 @@ if (!$record) {
             <td><?= htmlspecialchars($record['alasan']) ?></td>
         </tr>
         <tr>
-            <td><strong>Kwitansi Upload</strong></td>
-            <td><?= $record['kwitansi_uploaded_at'] ? date('d/m/Y H:i', strtotime($record['kwitansi_uploaded_at'])) : 'Belum diupload' ?></td>
+            <td><strong>Waktu Pengajuan</strong></td>
+            <td><?= $record['created_at'] ? date('d/m/Y H:i', strtotime($record['created_at'])) : 'Belum diupload' ?></td>
         </tr>
         <tr>
-            <td><strong>Bukti Upload</strong></td>
-            <td><?= $record['proof_uploaded_at'] ? date('d/m/Y H:i', strtotime($record['proof_uploaded_at'])) : 'Belum diupload' ?></td>
+            <td><strong>Waktu Pembaruan</strong></td>
+            <td><?= $record['updated_at'] ? date('d/m/Y H:i', strtotime($record['updated_at'])) : 'Belum diupload' ?></td>
         </tr>
     </table>
 </div>

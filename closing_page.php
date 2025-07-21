@@ -90,6 +90,9 @@ header("Pragma: no-cache");
         <div class="loader"></div>
         <h1>Terima Kasih</h1>
         <p>Pembayaran Anda telah berhasil dikonfirmasi.</p>
+        <?php if (isset($_SESSION['payment_success']['email_status'])): ?>
+        <p><?php echo htmlspecialchars($_SESSION['payment_success']['email_status']); ?></p>
+        <?php endif; ?>
         
         <p>Tim kami akan melakukan verifikasi pembayaran dan menghubungi Anda dalam waktu 1x24 jam.</p>
         <p>Halaman ini akan otomatis tertutup dalam <span id="countdown">10</span> detik...</p>

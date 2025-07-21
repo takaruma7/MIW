@@ -2,10 +2,10 @@
 require_once 'config.php';
 
 // Set default sorting
-$sort = $_GET['sort'] ?? 'kwitansi_uploaded_at';
+$sort = $_GET['sort'] ?? 'kwitansi_path';
 $order = $_GET['order'] ?? 'desc';
-$validSortColumns = ['nik', 'nama', 'no_telp', 'email', 'kwitansi_uploaded_at', 'proof_uploaded_at'];
-$sort = in_array($sort, $validSortColumns) ? $sort : 'kwitansi_uploaded_at';
+$validSortColumns = ['nik', 'nama', 'no_telp', 'email', 'kwitansi_path', 'proof_path'];
+$sort = in_array($sort, $validSortColumns) ? $sort : 'kwitansi_path';
 $order = $order === 'desc' ? 'desc' : 'asc';
 
 // Pagination setup
@@ -36,6 +36,20 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Pembatalan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="admin_styles.css">
+    <style>
+        .file-actions {
+            display: inline-flex;
+            gap: 0.5rem;
+        }
+        .preview-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
     <title>Admin - Data Pembatalan | MIW Travel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
@@ -83,13 +97,13 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?= $sort === 'email' ? ($order === 'asc' ? '↑' : '↓') : '' ?>
                             </th>
                             <th>Alasan</th>
-                            <th class="sortable <?= $sort === 'kwitansi_uploaded_at' ? 'sorted' : '' ?>" 
-                                onclick="sortTable('kwitansi_uploaded_at')">Kwitansi
-                                <?= $sort === 'kwitansi_uploaded_at' ? ($order === 'asc' ? '↑' : '↓') : '' ?>
+                            <th class="sortable <?= $sort === 'kwitansi_path' ? 'sorted' : '' ?>" 
+                                onclick="sortTable('kwitansi_path')">Kwitansi
+                                <?= $sort === 'kwitansi_path' ? ($order === 'asc' ? '↑' : '↓') : '' ?>
                             </th>
-                            <th class="sortable <?= $sort === 'proof_uploaded_at' ? 'sorted' : '' ?>" 
-                                onclick="sortTable('proof_uploaded_at')">Bukti
-                                <?= $sort === 'proof_uploaded_at' ? ($order === 'asc' ? '↑' : '↓') : '' ?>
+                            <th class="sortable <?= $sort === 'proof_path' ? 'sorted' : '' ?>" 
+                                onclick="sortTable('proof_path')">Bukti
+                                <?= $sort === 'proof_path' ? ($order === 'asc' ? '↑' : '↓') : '' ?>
                             </th>
                             <th>Aksi</th>
                         </tr>
@@ -108,15 +122,29 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <td><?= htmlspecialchars($record['email']) ?></td>
                                     <td><?= htmlspecialchars($record['alasan']) ?></td>
                                     <td>
-                                        <?php if ($record['kwitansi_uploaded_at']): ?>
-                                            <span class="badge bg-success">Uploaded</span>
+                                        <?php if ($record['kwitansi_path']): ?>
+                                            <div class="file-actions">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('<?= $record['kwitansi_path'] ?>', 'cancellations', 'preview')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('<?= $record['kwitansi_path'] ?>', 'cancellations', 'download')">
+                                                    <i class="bi bi-download"></i>
+                                                </button>
+                                            </div>
                                         <?php else: ?>
                                             <span class="badge bg-danger">Missing</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($record['proof_uploaded_at']): ?>
-                                            <span class="badge bg-success">Uploaded</span>
+                                        <?php if ($record['proof_path']): ?>
+                                            <div class="file-actions">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="handleFile('<?= $record['proof_path'] ?>', 'cancellations', 'preview')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-success" onclick="handleFile('<?= $record['proof_path'] ?>', 'cancellations', 'download')">
+                                                    <i class="bi bi-download"></i>
+                                                </button>
+                                            </div>
                                         <?php else: ?>
                                             <span class="badge bg-danger">Missing</span>
                                         <?php endif; ?>
@@ -275,5 +303,8 @@ $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }
     </script>
+
+    <?php include 'includes/file_preview_modal.php'; ?>
+    <script src="js/file_handlers.js"></script>
 </body>
 </html>

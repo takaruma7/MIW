@@ -66,7 +66,7 @@ HTML;
  */
 function buildRegistrationDetails($registrationData, $registrationType) {
     $currencySymbol = ($registrationData['currency'] ?? 'IDR') === 'USD' ? '$' : 'Rp';
-    $amount = isset($registrationData['harga_paket']) ? number_format($registrationData['harga_paket'], 0, ',', '.') : '0';
+    $amount = number_format($registrationData['harga_paket'] ?? 0, 0, ',', '.');
     
     $content = "<p>Berikut detail pendaftaran baru yang perlu diproses:</p>";
     
@@ -90,7 +90,7 @@ function buildRegistrationDetails($registrationData, $registrationType) {
         </table>";
     }
     
-    $content .= "<p>Dokumen pendukung terlampir dalam email ini.</p>";
+    $content .= "<p>Silakan cek dokumen pendukung di sistem administrasi.</p>";
     
     return $content;
 }
@@ -137,7 +137,7 @@ function buildPaymentConfirmationDetails($paymentData) {
         <tr><th>Waktu Pembayaran</th><td>" . htmlspecialchars($paymentData['payment_time']) . "</td></tr>
     </table>";
     
-    $content .= "<p>Bukti pembayaran terlampir dalam email ini.</p>";
+    $content .= "<p>Bukti pembayaran telah diunggah ke sistem. Silakan cek melalui sistem administrasi.</p>";
     
     return $content;
 }
@@ -246,12 +246,15 @@ function sendConfirmationEmail($registrationData, $registrationType = 'Umroh') {
 }
 
 /**
- * Send payment confirmation email to admin with payment proof
+ * Send payment confirmation email to admin and registrant
  */
-function sendPaymentConfirmationEmail($paymentData, $files, $registrationType = 'Umroh') {
+function sendPaymentConfirmationEmail($paymentData, $files = [], $registrationType = 'Umroh') {
     if (!EMAIL_ENABLED) {
         error_log("Email sending is disabled in config");
-        return false;
+        return [
+            'success' => false,
+            'message' => "Email sending is disabled in config"
+        ];
     }
 
     try {
@@ -269,12 +272,13 @@ function sendPaymentConfirmationEmail($paymentData, $files, $registrationType = 
 
         // Recipients
         $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
-        $mail->addAddress(ADMIN_EMAIL);
-        
-        // Add reply-to if needed
+        $mail->addAddress(ADMIN_EMAIL); // Admin
         if (!empty($paymentData['email'])) {
-            $mail->addReplyTo($paymentData['email'], $paymentData['nama']);
+            $mail->addAddress($paymentData['email'], $paymentData['nama']); // Registrant
         }
+        
+        // Add reply-to 
+        $mail->addReplyTo(EMAIL_FROM, EMAIL_FROM_NAME);
 
         // Content
         $mail->isHTML(true);
@@ -285,22 +289,28 @@ function sendPaymentConfirmationEmail($paymentData, $files, $registrationType = 
         $mail->Body = buildEmailTemplate("Konfirmasi Pembayaran $registrationType", $emailContent);
         $mail->AltBody = strip_tags($emailContent);
 
-        // Attachments
-        foreach ($files as $fileType => $file) {
-            if ($file['error'] === UPLOAD_ERR_OK) {
-                $mail->addAttachment(
-                    $file['tmp_name'],
-                    $file['name']
-                );
-            }
+        $success = $mail->send();
+        
+        if ($success) {
+            error_log("Payment confirmation email sent successfully to {$paymentData['email']} for {$paymentData['nama']}");
+            return [
+                'success' => true,
+                'message' => !empty($paymentData['email']) ? 
+                    "Email konfirmasi pembayaran telah dikirim ke {$paymentData['email']}" :
+                    "Email konfirmasi pembayaran telah dikirim ke admin"
+            ];
         }
-
-        // Send email
-        $mail->send();
-        return true;
+        
+        return [
+            'success' => false,
+            'message' => "Gagal mengirim email konfirmasi pembayaran"
+        ];
     } catch (Exception $e) {
         error_log("Payment confirmation email sending failed: " . $mail->ErrorInfo);
-        return false;
+        return [
+            'success' => false,
+            'message' => "Error: " . $e->getMessage()
+        ];
     }
 }
 
@@ -314,10 +324,10 @@ function buildPaymentVerificationContent($emailData) {
     $content .= "<table style='border-collapse: collapse; width: 100%; margin: 20px 0;'>";
     $content .= "<tr><th style='text-align: left; padding: 8px; width: 30%; border: 1px solid #ddd;'>NIK</th><td style='padding: 8px; border: 1px solid #ddd;'>" . htmlspecialchars($emailData['nik']) . "</td></tr>";
     $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Jenis Program</th><td style='padding: 8px; border: 1px solid #ddd;'>" . htmlspecialchars($emailData['program_pilihan']) . "</td></tr>";
-    $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Total Pembayaran</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['currency'] . " " . number_format($emailData['payment_total'], 0, ',', '.') . "</td></tr>";
+    $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Total Pembayaran</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['currency'] . " " . number_format($emailData['payment_total'] ?? 0, 0, ',', '.') . "</td></tr>";
     
     if ($emailData['payment_remaining'] > 0) {
-        $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Sisa Pembayaran</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['currency'] . " " . number_format($emailData['payment_remaining'], 0, ',', '.') . "</td></tr>";
+        $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Sisa Pembayaran</th><td style='padding: 8px; border: 1px solid #ddd;'>" . $emailData['currency'] . " " . number_format($emailData['payment_remaining'] ?? 0, 0, ',', '.') . "</td></tr>";
     }
     
     $content .= "<tr><th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Status</th><td style='padding: 8px; border: 1px solid #ddd;'>Terverifikasi</td></tr>";
@@ -443,7 +453,7 @@ function buildCancellationContent($cancellationData) {
 /**
  * Send cancellation notification email
  */
-function sendCancellationEmail($cancellationData, $files) {
+function sendCancellationEmail($cancellationData) {
     if (!EMAIL_ENABLED) {
         error_log("Email sending is disabled in config");
         return false;
@@ -463,17 +473,10 @@ function sendCancellationEmail($cancellationData, $files) {
         $mail->Subject = 'Pengajuan Pembatalan - ' . $cancellationData['nama'];
         
         $emailContent = buildCancellationContent($cancellationData) . 
-                       '<p>Dokumen pendukung terlampir dalam email ini.</p>';
+                       '<p>Dokumen pendukung telah diunggah ke sistem.</p>';
         
         $mail->Body = buildEmailTemplate('Pengajuan Pembatalan', $emailContent);
         $mail->AltBody = strip_tags($emailContent);
-
-        // Add attachments
-        foreach ($files as $file) {
-            if ($file['error'] === UPLOAD_ERR_OK) {
-                $mail->addAttachment($file['tmp_name'], $file['name']);
-            }
-        }
 
         return $mail->send();
     } catch (Exception $e) {

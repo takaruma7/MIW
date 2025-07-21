@@ -187,7 +187,7 @@ try {
                     <div class="info-label">Total Harga</div>
                     <div class="info-value">
                         <?= $viewData['currency'] === 'USD' ? '$' : 'Rp ' ?>
-                        <?= number_format($viewData['payment_total'], 0, ',', '.') ?>
+                        <?= number_format($viewData['payment_total'] ?? 0, 0, ',', '.') ?>
                     </div>
                 </div>
                 <div class="info-item">
@@ -246,7 +246,7 @@ try {
                 <div class="info-item">
                     <div class="info-label">Upload Bukti Transfer</div>
                     <div class="info-value">
-                        <input type="file" name="payment_proof" accept="image/*,.pdf" required>
+                        <input type="file" name="payment_path" accept="image/*,.pdf" required>
                     </div>
                 </div>
             </div>
