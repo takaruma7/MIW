@@ -29,6 +29,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     Manifest Control Panel
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link <?= $current_page === 'admin_kelengkapan.php' ? 'active' : '' ?>" href="admin_kelengkapan.php">
+                    Document Management
+                </a>
+            </li>
         </ul>
     </div>
 </div>

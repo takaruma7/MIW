@@ -103,7 +103,11 @@ foreach ($packages as $package): ?>
         </thead>
         <tbody>
             <?php 
-            $stmt = $conn->prepare("SELECT j.*, m.room_prefix as manifest_room_prefix
+            $stmt = $conn->prepare("SELECT j.*, 
+                                  m.room_prefix as manifest_room_prefix,
+                                  m.relation,
+                                  m.medinah_number,
+                                  m.mekkah_number
                                   FROM data_jamaah j 
                                   LEFT JOIN data_manifest m ON j.nik = m.nik AND j.pak_id = m.pak_id 
                                   WHERE j.pak_id = ?");
@@ -141,8 +145,8 @@ foreach ($packages as $package): ?>
                     <input type="hidden" name="nik" value="<?= htmlspecialchars($jamaah['nik']) ?>">
                     <input type="hidden" name="pak_id" value="<?= htmlspecialchars($package['pak_id']) ?>">
                     <td>
-                        <input type="text" class="form-control" name="relation" 
-                               value="<?= htmlspecialchars($jamaah['hubungan_mahram'] ?? '') ?>" required>
+                        <input type="text" class="form-control manifest-field" name="relation" 
+                               value="<?= htmlspecialchars(($manifestData['relation'] ?? $jamaah['hubungan_mahram'] ?? '')) ?>" required>
                     </td>
                     <td>
                         <select class="form-select" name="room_prefix" required>
@@ -168,4 +172,5 @@ foreach ($packages as $package): ?>
             <?php endforeach; ?>
         </tbody>
     </table>
+    <br><br><br><br><hr>
 <?php endforeach; ?>

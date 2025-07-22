@@ -117,7 +117,7 @@
         <tbody>
             <?php 
             // Get jamaah for this package
-            $stmt = $conn->prepare("SELECT j.*, m.room_prefix as manifest_room_prefix
+            $stmt = $conn->prepare("SELECT j.*, m.room_prefix as manifest_room_prefix, m.relation as manifest_relation
                                   FROM data_jamaah j 
                                   LEFT JOIN data_manifest m ON j.nik = m.nik AND j.pak_id = m.pak_id 
                                   WHERE j.pak_id = ?");
@@ -164,7 +164,7 @@
                     <input type="hidden" name="pak_id" value="<?= htmlspecialchars($package['pak_id']) ?>">
                     <td>
                         <input type="text" class="form-control" name="relation" 
-                               value="<?= htmlspecialchars($jamaah['hubungan_mahram'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars(($jamaah['manifest_relation'] ?? $jamaah['hubungan_mahram'] ?? '')) ?>" required>
                     </td>
                     <td>
                         <select class="form-select" name="room_prefix" required>

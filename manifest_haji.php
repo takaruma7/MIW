@@ -142,7 +142,7 @@ foreach ($packages as $package): ?>
                     <input type="hidden" name="pak_id" value="<?= htmlspecialchars($package['pak_id']) ?>">
                     <td>
                         <input type="text" class="form-control" name="relation" 
-                               value="<?= htmlspecialchars($jamaah['hubungan_mahram'] ?? '') ?>" required>
+                               value="<?= htmlspecialchars(($manifestData['relation'] ?? $jamaah['hubungan_mahram'] ?? '')) ?>" required>
                     </td>
                     <td>
                         <select class="form-select" name="room_prefix" required>
@@ -168,4 +168,5 @@ foreach ($packages as $package): ?>
             <?php endforeach; ?>
         </tbody>
     </table>
+    <br><br><br><br><hr>
 <?php endforeach; ?>

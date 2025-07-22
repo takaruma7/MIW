@@ -10,7 +10,7 @@ try {
     error_log("POST data received: " . print_r($_POST, true));
     
     // Validate all required fields upfront
-    $required_fields = ['nik', 'pak_id', 'room_prefix', 'medinah_number', 'mekkah_number', 'relation'];
+    $required_fields = ['nik', 'pak_id', 'room_prefix', 'medinah_number', 'mekkah_number'];
     $missing_fields = [];
     
     foreach ($required_fields as $field) {
@@ -31,18 +31,25 @@ try {
     $stmt->execute([$_POST['nik'], $_POST['pak_id']]);
     $manifest = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Prepare data with trimmed values
+    // Prepare data with trimmed values, excluding relation if not needed
     $data = [
         'nik' => trim($_POST['nik']),
         'pak_id' => trim($_POST['pak_id']),
         'room_prefix' => trim($_POST['room_prefix']),
         'medinah_number' => trim($_POST['medinah_number']),
-        'mekkah_number' => trim($_POST['mekkah_number']),
-        'relation' => trim($_POST['relation'])
+        'mekkah_number' => trim($_POST['mekkah_number'])
     ];
+
+    // Only include relation if it's provided and not empty
+    if (isset($_POST['relation']) && trim($_POST['relation']) !== '') {
+        $data['relation'] = trim($_POST['relation']);
+    }
     
-    // Double-check that none of the trimmed values are empty
+    // Double-check that required values are not empty
     foreach ($data as $key => $value) {
+        // Skip validation for optional fields
+        if ($key === 'relation') continue;
+        
         if ($value === '') {
             throw new Exception("Field '$key' cannot be empty");
         }
@@ -53,18 +60,25 @@ try {
         $sql = "UPDATE data_manifest SET 
                 room_prefix = :room_prefix,
                 medinah_number = :medinah_number,
-                mekkah_number = :mekkah_number,
-                relation = :relation,
-                updated_at = NOW()
+                mekkah_number = :mekkah_number" .
+                (isset($data['relation']) ? ", relation = :relation" : "") .
+                ", updated_at = NOW()
                 WHERE nik = :nik AND pak_id = :pak_id";
     } else {
         // Insert new record
-        $sql = "INSERT INTO data_manifest (
-                nik, pak_id, room_prefix, medinah_number, 
-                mekkah_number, relation, created_at, updated_at
-                ) VALUES (
-                :nik, :pak_id, :room_prefix, :medinah_number, 
-                :mekkah_number, :relation, NOW(), NOW())";
+        $fields = ['nik', 'pak_id', 'room_prefix', 'medinah_number', 'mekkah_number'];
+        $values = [':nik', ':pak_id', ':room_prefix', ':medinah_number', ':mekkah_number'];
+        
+        if (isset($data['relation'])) {
+            $fields[] = 'relation';
+            $values[] = ':relation';
+        }
+        
+        $sql = "INSERT INTO data_manifest (" .
+                implode(', ', array_merge($fields, ['created_at', 'updated_at'])) .
+                ") VALUES (" .
+                implode(', ', array_merge($values, ['NOW()', 'NOW()'])) .
+                ")";
     }
     
     $stmt = $conn->prepare($sql);
