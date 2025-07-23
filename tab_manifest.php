@@ -1,4 +1,10 @@
-<?php foreach ($packages as $package): ?>
+<?php 
+// Ensure config.php is included (it should be included from the parent file)
+if (!isset($conn)) {
+    require_once 'config.php';
+}
+
+foreach ($packages as $package): ?>
     <div class="package-header">
         <h4><?= htmlspecialchars($package['jenis_paket']) ?> - <?= htmlspecialchars($package['program_pilihan']) ?></h4>
         <p>
@@ -6,7 +12,7 @@
             <strong>Hotel Madinah:</strong> <?= htmlspecialchars($package['hotel_medinah']) ?><br>
             <strong>Hotel Makkah:</strong> <?= htmlspecialchars($package['hotel_makkah']) ?>
         </p>
-        <button class="btn btn-sm btn-primary export-manifest" data-pakid="<?= $package['pak_id'] ?>">Export Manifest</button>
+        <a href="admin_manifest.php" class="btn btn-sm btn-secondary">Go to Export</a>
     </div>
 
     <?php
@@ -16,14 +22,13 @@
     $tripleRooms = array_filter($roomNumbers, fn($prefix) => strpos($prefix, 'T') === 0);
     $doubleRooms = array_filter($roomNumbers, fn($prefix) => strpos($prefix, 'D') === 0);
 
-    // Count used rooms by type
-    $stmt_used = $conn->prepare("SELECT room_prefix FROM data_manifest WHERE pak_id = ?");
-    $stmt_used->execute([$package['pak_id']]);
-    $usedPrefixes = $stmt_used->fetchAll(PDO::FETCH_COLUMN);
+    // Since we don't use data_manifest table anymore, we'll set default values
+    $usedPrefixes = [];
+    // We could count based on data_jamaah if room fields are added later
 
-    $usedQuad = count(array_filter($usedPrefixes, fn($prefix) => strpos($prefix, 'Q') === 0));
-    $usedTriple = count(array_filter($usedPrefixes, fn($prefix) => strpos($prefix, 'T') === 0));
-    $usedDouble = count(array_filter($usedPrefixes, fn($prefix) => strpos($prefix, 'D') === 0));
+    $usedQuad = 0;
+    $usedTriple = 0;
+    $usedDouble = 0;
     ?>
 
     <div class="room-data mb-3">
@@ -116,11 +121,8 @@
         </thead>
         <tbody>
             <?php 
-            // Get jamaah for this package
-            $stmt = $conn->prepare("SELECT j.*, m.room_prefix as manifest_room_prefix, m.relation as manifest_relation
-                                  FROM data_jamaah j 
-                                  LEFT JOIN data_manifest m ON j.nik = m.nik AND j.pak_id = m.pak_id 
-                                  WHERE j.pak_id = ?");
+            // Get jamaah data directly from data_jamaah table
+            $stmt = $conn->prepare("SELECT * FROM data_jamaah WHERE pak_id = ? ORDER BY nama");
             $stmt->execute([$package['pak_id']]);
             $jamaahs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -141,18 +143,11 @@
                     }
                 }
                 
-                // Get room numbers from manifest if they exist
-                $medinahNumber = '';
-                $mekkahNumber = '';
-                
-                $stmt2 = $conn->prepare("SELECT medinah_number, mekkah_number FROM data_manifest WHERE nik = ? AND pak_id = ?");
-                $stmt2->execute([$jamaah['nik'], $package['pak_id']]);
-                if ($row = $stmt2->fetch()) {
-                    $medinahNumber = $row['medinah_number'];
-                    $mekkahNumber = $row['mekkah_number'];
-                }
-                
-                // No HCN parsing needed anymore
+                // Get current room data from data_jamaah
+                $medinahNumber = $jamaah['medinah_room_number'] ?? '';
+                $mekkahNumber = $jamaah['mekkah_room_number'] ?? '';
+                $roomPrefix = $jamaah['room_prefix'] ?? '';
+                $roomRelation = $jamaah['room_relation'] ?? $jamaah['hubungan_mahram'] ?? '';
             ?>
             <tr>
                 <td><?= $counter++ ?></td>
@@ -164,13 +159,13 @@
                     <input type="hidden" name="pak_id" value="<?= htmlspecialchars($package['pak_id']) ?>">
                     <td>
                         <input type="text" class="form-control" name="relation" 
-                               value="<?= htmlspecialchars(($jamaah['manifest_relation'] ?? $jamaah['hubungan_mahram'] ?? '')) ?>" required>
+                               value="<?= htmlspecialchars($roomRelation) ?>" required>
                     </td>
                     <td>
                         <select class="form-select" name="room_prefix" required>
                             <option value="">Select Room</option>
                             <?php foreach ($roomPrefixes as $prefix): ?>
-                                <option value="<?= htmlspecialchars($prefix) ?>" <?= ($jamaah['manifest_room_prefix'] === $prefix) ? 'selected' : '' ?>>
+                                <option value="<?= htmlspecialchars($prefix) ?>" <?= ($roomPrefix === $prefix) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($prefix) ?>
                                 </option>
                             <?php endforeach; ?>

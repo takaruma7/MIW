@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Export</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+</head>
+<body>
+    <h1>Test Export</h1>
+    <button id="testExport">Test Export</button>
+    
+    <script>
+        function exportToExcel(pakId, type, data) {
+            // Create a new workbook without using template
+            const wb = XLSX.utils.book_new();
+            
+            console.log("Creating manifest export for package:", pakId);
+            console.log("Data received:", data);
+            
+            if (type === 'manifest' && data.manifest && data.manifest.length > 0) {
+                // Create header information
+                const headerInfo = [
+                    [`Manifest Jamaah ${data.package.name}`],
+                    [`Tanggal ${data.package.departure_date}`],
+                    [`Program ${data.package.type}`],
+                    [''],
+                    ['Hotel Information:'],
+                    [`Medinah: ${data.package.hotel_medinah}`, '', '', `HCN: ${data.package.hotel_medinah_hcn}`],
+                    [`Makkah: ${data.package.hotel_makkah}`, '', '', `HCN: ${data.package.hotel_makkah_hcn}`],
+                    [`HCN Issue Date: ${data.package.hcn_issue_date}`, '', '', `Expiry Date: ${data.package.hcn_expiry_date}`],
+                    [''],
+                    ['No', 'Sex', 'Name of Passport', 'Marketing', 'Nama Ayah', 'Birth: Date', 'Birth: City', 
+                     'Passport: No.Passport', 'Passport: Issuing Office', 'Passport: Date of Issue', 
+                     'Passport: Date of Expiry', 'Relation', 'Age', 'Cabang', 'Roomlist', 'NIK', 'Alamat', 'Keterangan']
+                ];
+                
+                // Convert manifest data to array format
+                const manifestRows = data.manifest.map(row => [
+                    row['No'],
+                    row['Sex'],
+                    row['Name of Passport'],
+                    row['Marketing'],
+                    row['Nama Ayah'],
+                    row['Birth: Date'],
+                    row['Birth: City'],
+                    row['Passport: No.Passport'],
+                    row['Passport: Issuing Office'],
+                    row['Passport: Date of Issue'],
+                    row['Passport: Date of Expiry'],
+                    row['Relation'],
+                    row['Age'],
+                    row['Cabang'],
+                    row['Roomlist'],
+                    row['NIK'],
+                    row['Alamat'],
+                    row['Keterangan']
+                ]);
+                
+                // Combine header and data
+                const allData = [...headerInfo, ...manifestRows];
+                
+                // Create worksheet
+                const wsManifest = XLSX.utils.aoa_to_sheet(allData);
+                
+                // Set column widths
+                wsManifest['!cols'] = [
+                    {wch: 5},  // No
+                    {wch: 5},  // Sex
+                    {wch: 25}, // Name of Passport
+                    {wch: 20}, // Marketing
+                    {wch: 20}, // Nama Ayah
+                    {wch: 12}, // Birth: Date
+                    {wch: 15}, // Birth: City
+                    {wch: 15}, // Passport: No.Passport
+                    {wch: 15}, // Passport: Issuing Office
+                    {wch: 12}, // Passport: Date of Issue
+                    {wch: 12}, // Passport: Date of Expiry
+                    {wch: 15}, // Relation
+                    {wch: 5},  // Age
+                    {wch: 10}, // Cabang
+                    {wch: 10}, // Roomlist
+                    {wch: 20}, // NIK
+                    {wch: 40}, // Alamat
+                    {wch: 30}  // Keterangan
+                ];
+                
+                // Add the manifest sheet
+                XLSX.utils.book_append_sheet(wb, wsManifest, 'Manifest');
+                
+                // Create more informative filename with package info and date
+                let packageName = data.package.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                // Limit package name length for filename
+                if (packageName.length > 30) {
+                    packageName = packageName.substring(0, 30);
+                }
+                
+                // Add departure date to filename (formatted as DDMMYYYY)
+                let departureDate = data.package.departure_date || '';
+                departureDate = departureDate.replace(/\//g, '');
+                
+                // Final filename
+                const filename = `${type}_${packageName}_${departureDate}_${pakId}.xlsx`;
+                
+                // Export the workbook
+                XLSX.writeFile(wb, filename);
+                
+                console.log(`Export successful: ${filename}`);
+                alert('Export completed successfully!');
+            } else {
+                console.error('No manifest data found for export');
+                alert('No manifest data found for export');
+            }
+        }
+        
+        $('#testExport').on('click', function() {
+            $.ajax({
+                url: 'export_manifest.php',
+                type: 'POST',
+                data: { pak_id: '5', export_type: 'manifest' },
+                success: function(response) {
+                    console.log('Response received:', response);
+                    if (response.success && response.data && response.data.manifest) {
+                        exportToExcel('5', 'manifest', response.data);
+                    } else {
+                        alert('Error: ' + (response.message || 'No data received'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', error);
+                    alert('Error during export: ' + error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

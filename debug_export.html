@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Export</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+</head>
+<body>
+    <h1>Debug Export</h1>
+    <button id="debugExport">Debug Export</button>
+    <div id="output"></div>
+    
+    <script>
+        $('#debugExport').on('click', function() {
+            $.ajax({
+                url: 'export_manifest.php',
+                type: 'POST',
+                data: { pak_id: '5', export_type: 'manifest' },
+                success: function(response) {
+                    console.log('Raw response:', response);
+                    $('#output').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                    
+                    if (response.success && response.data && response.data.manifest) {
+                        console.log('Manifest data:', response.data.manifest);
+                        console.log('Number of jamaah:', response.data.manifest.length);
+                        
+                        // Check first jamaah data
+                        if (response.data.manifest.length > 0) {
+                            console.log('First jamaah:', response.data.manifest[0]);
+                        }
+                        
+                        // Test the export function with simple data
+                        const wb = XLSX.utils.book_new();
+                        
+                        // Create simple test data
+                        const testData = [
+                            ['No', 'Name', 'Sex'],
+                            [1, 'Test Name', 'MR'],
+                            [2, 'Another Name', 'MRS']
+                        ];
+                        
+                        const ws = XLSX.utils.aoa_to_sheet(testData);
+                        XLSX.utils.book_append_sheet(wb, ws, 'Test');
+                        XLSX.writeFile(wb, 'test_simple.xlsx');
+                        
+                        console.log('Simple test export completed');
+                        
+                        // Now try with actual data
+                        exportActualData(response.data);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    $('#output').html('Error: ' + error);
+                }
+            });
+        });
+        
+        function exportActualData(data) {
+            console.log('Starting actual data export');
+            const wb = XLSX.utils.book_new();
+            
+            // Header info
+            const headerInfo = [
+                [`Manifest Jamaah ${data.package.name}`],
+                [`Tanggal ${data.package.departure_date}`],
+                [`Program ${data.package.type}`],
+                [''],
+                ['No', 'Sex', 'Name of Passport', 'Marketing', 'NIK']
+            ];
+            
+            // Convert manifest data
+            const manifestRows = data.manifest.map(row => [
+                row['No'],
+                row['Sex'],
+                row['Name of Passport'],
+                row['Marketing'],
+                row['NIK']
+            ]);
+            
+            console.log('Header info:', headerInfo);
+            console.log('Manifest rows:', manifestRows);
+            
+            const allData = [...headerInfo, ...manifestRows];
+            console.log('Combined data:', allData);
+            
+            const ws = XLSX.utils.aoa_to_sheet(allData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Manifest');
+            XLSX.writeFile(wb, 'test_actual_data.xlsx');
+            
+            console.log('Actual data export completed');
+        }
+    </script>
+</body>
+</html>

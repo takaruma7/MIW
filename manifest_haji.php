@@ -1,4 +1,9 @@
 <?php
+// Ensure config.php is included (it should be included from the parent file)
+if (!isset($conn)) {
+    require_once 'config.php';
+}
+
 $stmt = $conn->query("SELECT * FROM data_paket WHERE jenis_paket = 'Haji' ORDER BY program_pilihan");
 $packages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -10,7 +15,7 @@ foreach ($packages as $package): ?>
             <strong>Hotel Madinah:</strong> <?= htmlspecialchars($package['hotel_medinah']) ?><br>
             <strong>Hotel Makkah:</strong> <?= htmlspecialchars($package['hotel_makkah']) ?>
         </p>
-        <button class="btn btn-sm btn-primary export-manifest" data-pakid="<?= $package['pak_id'] ?>">Export Manifest</button>
+        <a href="admin_manifest.php" class="btn btn-sm btn-secondary">Go to Export</a>
     </div>
 
     <div class="room-data mb-3">
@@ -103,10 +108,8 @@ foreach ($packages as $package): ?>
         </thead>
         <tbody>
             <?php 
-            $stmt = $conn->prepare("SELECT j.*, m.room_prefix as manifest_room_prefix
-                                  FROM data_jamaah j 
-                                  LEFT JOIN data_manifest m ON j.nik = m.nik AND j.pak_id = m.pak_id 
-                                  WHERE j.pak_id = ?");
+            // Get jamaah data directly from data_jamaah table
+            $stmt = $conn->prepare("SELECT * FROM data_jamaah WHERE pak_id = ? ORDER BY nama");
             $stmt->execute([$package['pak_id']]);
             $jamaahs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -126,11 +129,11 @@ foreach ($packages as $package): ?>
                     }
                 }
                 
-                $stmt2 = $conn->prepare("SELECT medinah_number, mekkah_number FROM data_manifest WHERE nik = ? AND pak_id = ?");
-                $stmt2->execute([$jamaah['nik'], $package['pak_id']]);
-                $manifestData = $stmt2->fetch();
-                $medinahNumber = $manifestData ? $manifestData['medinah_number'] : '';
-                $mekkahNumber = $manifestData ? $manifestData['mekkah_number'] : '';
+                // Get current room data from data_jamaah
+                $medinahNumber = $jamaah['medinah_room_number'] ?? '';
+                $mekkahNumber = $jamaah['mekkah_room_number'] ?? '';
+                $roomPrefix = $jamaah['room_prefix'] ?? '';
+                $roomRelation = $jamaah['room_relation'] ?? $jamaah['hubungan_mahram'] ?? '';
             ?>
             <tr>
                 <td><?= $counter++ ?></td>
@@ -142,13 +145,13 @@ foreach ($packages as $package): ?>
                     <input type="hidden" name="pak_id" value="<?= htmlspecialchars($package['pak_id']) ?>">
                     <td>
                         <input type="text" class="form-control" name="relation" 
-                               value="<?= htmlspecialchars(($manifestData['relation'] ?? $jamaah['hubungan_mahram'] ?? '')) ?>" required>
+                               value="<?= htmlspecialchars($roomRelation) ?>" required>
                     </td>
                     <td>
                         <select class="form-select" name="room_prefix" required>
                             <option value="">Select Room</option>
                             <?php foreach ($roomPrefixes as $prefix): ?>
-                                <option value="<?= htmlspecialchars($prefix) ?>" <?= ($jamaah['manifest_room_prefix'] === $prefix) ? 'selected' : '' ?>>
+                                <option value="<?= htmlspecialchars($prefix) ?>" <?= ($roomPrefix === $prefix) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($prefix) ?>
                                 </option>
                             <?php endforeach; ?>

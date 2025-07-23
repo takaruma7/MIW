@@ -25,13 +25,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?= $current_page === 'admin_roomlist.php' ? 'active' : '' ?>" href="admin_roomlist.php">
+                    Roomlist
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link <?= $current_page === 'admin_manifest.php' ? 'active' : '' ?>" href="admin_manifest.php">
-                    Manifest Control Panel
+                    Export Manifest
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link <?= $current_page === 'admin_kelengkapan.php' ? 'active' : '' ?>" href="admin_kelengkapan.php">
-                    Document Management
+                    Dokumen Jamaah
                 </a>
             </li>
         </ul>

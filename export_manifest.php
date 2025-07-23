@@ -45,16 +45,11 @@ try {
         throw new Exception("Package not found: " . $pakId);
     }
     
-    // Get jamaah for this package
+    // Get jamaah data directly from data_jamaah table
+    $jamaahs = [];
     $stmt = $conn->prepare("
-        SELECT j.*, 
-               m.room_prefix, 
-               m.medinah_number, 
-               m.mekkah_number, 
-               m.relation,
-               j.hubungan_mahram
+        SELECT j.*
         FROM data_jamaah j
-        LEFT JOIN data_manifest m ON j.nik = m.nik AND j.pak_id = m.pak_id
         WHERE j.pak_id = ?
         ORDER BY j.nama
     ");
@@ -74,40 +69,46 @@ try {
         // Prepare manifest export data
         $counter = 1;
         foreach ($jamaahs as $jamaah) {
+            // Calculate age if needed
+            $age = $jamaah['umur'] ?? '';
+            if (empty($age) && !empty($jamaah['tanggal_lahir'])) {
+                $age = date_diff(date_create($jamaah['tanggal_lahir']), date_create('today'))->y;
+            }
+            
+            // Determine marketing name
+            $marketingName = $jamaah['marketing_nama'] ?? '';
+            if ($marketingName === $jamaah['nama']) {
+                $marketingName = 'Eli Rahmalia';
+            }
+            
+            // Strictly format data according to manifest template
             $manifestData[] = [
                 'No' => $counter++,
                 'Sex' => $jamaah['jenis_kelamin'] === 'Laki-laki' ? 'MR' : 'MRS',
-                'Family Name' => '', // Usually left blank as per template
-                'Given Name' => strtoupper($jamaah['nama']), // Uppercase as per template
-                'Name in Passport' => strtoupper($jamaah['nama_paspor'] ?? $jamaah['nama']),
+                'Name of Passport' => strtoupper($jamaah['nama_paspor'] ?? $jamaah['nama']),
+                'Marketing' => strtoupper($marketingName),
+                'Nama Ayah' => strtoupper($jamaah['nama_ayah'] ?? ''),
+                'Birth: Date' => $jamaah['tanggal_lahir'] ? date('d/m/Y', strtotime($jamaah['tanggal_lahir'])) : '',
+                'Birth: City' => strtoupper($jamaah['tempat_lahir'] ?? ''),
+                'Passport: No.Passport' => strtoupper($jamaah['no_paspor'] ?? ''),
+                'Passport: Issuing Office' => strtoupper($jamaah['tempat_pembuatan_paspor'] ?? ''),
+                'Passport: Date of Issue' => $jamaah['tanggal_pengeluaran_paspor'] ? date('d/m/Y', strtotime($jamaah['tanggal_pengeluaran_paspor'])) : '',
+                'Passport: Date of Expiry' => $jamaah['tanggal_habis_berlaku'] ? date('d/m/Y', strtotime($jamaah['tanggal_habis_berlaku'])) : '',
+                'Relation' => strtoupper($jamaah['room_relation'] ?? $jamaah['hubungan_mahram'] ?? ''),
+                'Age' => $age,
+                'Cabang' => 'Bandung',
+                'Roomlist' => $jamaah['type_room_pilihan'] ?? '',
                 'NIK' => $jamaah['nik'],
-                'Birth Date' => $jamaah['tanggal_lahir'] ? date('d/m/Y', strtotime($jamaah['tanggal_lahir'])) : '',
-                'Place of Birth' => strtoupper($jamaah['tempat_lahir'] ?? ''),
-                'Nationality' => strtoupper($jamaah['kewarganegaraan'] ?? 'INDONESIA'),
-                'Passport No' => strtoupper($jamaah['no_paspor'] ?? ''),
-                'Issue Date' => $jamaah['tanggal_pengeluaran_paspor'] ? date('d/m/Y', strtotime($jamaah['tanggal_pengeluaran_paspor'])) : '',
-                'Expiry Date' => $jamaah['tanggal_habis_berlaku'] ? date('d/m/Y', strtotime($jamaah['tanggal_habis_berlaku'])) : '',
-                'Issue Place' => strtoupper($jamaah['tempat_pembuatan_paspor'] ?? ''),
-                'Mahram Name' => strtoupper($jamaah['nama_mahram'] ?? ''),
-                'Relation' => strtoupper($jamaah['relation'] ?? $jamaah['hubungan_mahram'] ?? ''),
-                'Room Code' => $jamaah['room_prefix'] ?? '',
-                'Room No (MAK)' => $jamaah['mekkah_number'] ?? '',
-                'Room No (MAD)' => $jamaah['medinah_number'] ?? '',
-                'Marketing' => strtoupper($jamaah['marketing_nama'] ?? ''),
-                'Phone No' => $jamaah['no_telp'] ?? '',
-                'Father Name' => strtoupper($jamaah['nama_ayah'] ?? ''),
-                'Package Type' => $package['jenis_paket'] ?? '',
-                'Age' => $jamaah['umur'] ?? ($jamaah['tanggal_lahir'] ? date_diff(date_create($jamaah['tanggal_lahir']), date_create('today'))->y : ''),
-                'Address' => strtoupper($jamaah['alamat'] ?? ''),
-                'Special Request' => $jamaah['request_khusus'] ?? ''
+                'Alamat' => strtoupper($jamaah['alamat'] ?? ''),
+                'Keterangan' => $jamaah['request_khusus'] ?? ''
             ];
             
             // Add to room lists data
             $roomPrefix = $jamaah['room_prefix'] ?? '';
             if (!empty($roomPrefix)) {
                 $roomType = substr($roomPrefix, 0, 1); // Q, T, or D
-                $roomNumber = $jamaah['medinah_number'] ?? '';
-                $makkahNumber = $jamaah['mekkah_number'] ?? '';
+                $roomNumber = $jamaah['medinah_room_number'] ?? '';
+                $makkahNumber = $jamaah['mekkah_room_number'] ?? '';
                 
                 // Add to Medinah rooms
                 if (!empty($roomNumber)) {
@@ -134,25 +135,7 @@ try {
                 }
             }
         }
-    } elseif ($exportType === 'kelengkapan') {
-        // Prepare kelengkapan export data
-        $counter = 1;
-        foreach ($jamaahs as $jamaah) {
-            $exportData[] = [
-                'No' => $counter++,
-                'Gender' => $jamaah['jenis_kelamin'] === 'Laki-laki' ? 'Mr' : 'Mrs',
-                'Nama' => $jamaah['nama'],
-                'Passport' => $jamaah['paspor_path'] ? '✓' : '',
-                'Buku Kuning' => $jamaah['bk_kuning'] ? '✓' : '',
-                'Foto' => $jamaah['foto'] ? '✓' : '',
-                'Fotocopy KTP' => $jamaah['fc_ktp_path'] ? '✓' : '',
-                'Fotocopy Ijazah' => $jamaah['fc_ijazah_path'] ? '✓' : '',
-                'Fotocopy Kartu Keluarga' => $jamaah['fc_kk_path'] ? '✓' : '',
-                'Fotocopy Buku Nikah' => $jamaah['fc_bk_nikah_path'] ? '✓' : '',
-                'Fotocopy Akta Kelahiran' => $jamaah['fc_akta_lahir_path'] ? '✓' : '',
-                'Vaksin' => $jamaah['tanggal_vaksin_1'] ? '✓' : ''
-            ];
-        }
+
     }
     
     // Convert room lists to flat arrays for export

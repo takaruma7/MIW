@@ -26,68 +26,59 @@ try {
     // Begin transaction
     $conn->beginTransaction();
     
-    // Check if manifest record exists
-    $stmt = $conn->prepare("SELECT * FROM data_manifest WHERE nik = ? AND pak_id = ?");
-    $stmt->execute([$_POST['nik'], $_POST['pak_id']]);
-    $manifest = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Check if jamaah exists
+    $stmt = $conn->prepare("SELECT * FROM data_jamaah WHERE nik = ?");
+    $stmt->execute([$_POST['nik']]);
+    $jamaah = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Prepare data with trimmed values, excluding relation if not needed
+    if (!$jamaah) {
+        throw new Exception("Jamaah with NIK {$_POST['nik']} not found");
+    }
+    
+    // Prepare data with trimmed values
     $data = [
-        'nik' => trim($_POST['nik']),
-        'pak_id' => trim($_POST['pak_id']),
         'room_prefix' => trim($_POST['room_prefix']),
-        'medinah_number' => trim($_POST['medinah_number']),
-        'mekkah_number' => trim($_POST['mekkah_number'])
+        'medinah_room_number' => trim($_POST['medinah_number']),
+        'mekkah_room_number' => trim($_POST['mekkah_number']),
+        'nik' => trim($_POST['nik'])
     ];
 
-    // Only include relation if it's provided and not empty
+    // Only include relation/hubungan_mahram if it's provided and not empty
     if (isset($_POST['relation']) && trim($_POST['relation']) !== '') {
-        $data['relation'] = trim($_POST['relation']);
+        $data['room_relation'] = trim($_POST['relation']);
     }
     
     // Double-check that required values are not empty
     foreach ($data as $key => $value) {
-        // Skip validation for optional fields
-        if ($key === 'relation') continue;
+        // Skip validation for optional fields and the NIK which is used in WHERE clause
+        if ($key === 'room_relation' || $key === 'nik') continue;
         
         if ($value === '') {
             throw new Exception("Field '$key' cannot be empty");
         }
     }
     
-    if ($manifest) {
-        // Update existing record
-        $sql = "UPDATE data_manifest SET 
-                room_prefix = :room_prefix,
-                medinah_number = :medinah_number,
-                mekkah_number = :mekkah_number" .
-                (isset($data['relation']) ? ", relation = :relation" : "") .
-                ", updated_at = NOW()
-                WHERE nik = :nik AND pak_id = :pak_id";
-    } else {
-        // Insert new record
-        $fields = ['nik', 'pak_id', 'room_prefix', 'medinah_number', 'mekkah_number'];
-        $values = [':nik', ':pak_id', ':room_prefix', ':medinah_number', ':mekkah_number'];
-        
-        if (isset($data['relation'])) {
-            $fields[] = 'relation';
-            $values[] = ':relation';
-        }
-        
-        $sql = "INSERT INTO data_manifest (" .
-                implode(', ', array_merge($fields, ['created_at', 'updated_at'])) .
-                ") VALUES (" .
-                implode(', ', array_merge($values, ['NOW()', 'NOW()'])) .
-                ")";
+    // Update jamaah record with room information
+    $sql = "UPDATE data_jamaah SET 
+            room_prefix = :room_prefix,
+            medinah_room_number = :medinah_room_number,
+            mekkah_room_number = :mekkah_room_number";
+    
+    if (isset($data['room_relation'])) {
+        $sql .= ", room_relation = :room_relation";
     }
+    
+    $sql .= ", updated_at = NOW() WHERE nik = :nik";
     
     $stmt = $conn->prepare($sql);
     $stmt->execute($data);
     
+    // Commit transaction
     $conn->commit();
+    
     $response = [
         'success' => true, 
-        'message' => 'Manifest updated successfully'
+        'message' => 'Roomlist updated successfully'
     ];
 
 } catch (Exception $e) {

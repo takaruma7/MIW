@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comprehensive Export Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Comprehensive Export Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Data Retrieval</h2>
+        <button onclick="testDataRetrieval()">Test Data Retrieval</button>
+        <div id="dataTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test Export Generation</h2>
+        <button onclick="testExportGeneration()">Test Export Generation</button>
+        <div id="exportTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Download Sample Export</h2>
+        <button onclick="downloadSampleExport()">Download Sample Export</button>
+        <div id="downloadTest"></div>
+    </div>
+    
+    <script>
+        function testDataRetrieval() {
+            $('#dataTest').html('<p>Testing data retrieval...</p>');
+            
+            $.ajax({
+                url: 'export_manifest.php',
+                type: 'POST',
+                data: { pak_id: '5', export_type: 'manifest' },
+                success: function(response) {
+                    let html = '<div class="success"><h3>✓ Data Retrieval Success</h3>';
+                    html += '<p><strong>Package:</strong> ' + response.data.package.name + '</p>';
+                    html += '<p><strong>Jamaah Count:</strong> ' + response.data.manifest.length + '</p>';
+                    html += '<p><strong>Sample Jamaah:</strong></p>';
+                    
+                    if (response.data.manifest.length > 0) {
+                        const jamaah = response.data.manifest[0];
+                        html += '<ul>';
+                        html += '<li>Name: ' + jamaah['Name of Passport'] + '</li>';
+                        html += '<li>NIK: ' + jamaah['NIK'] + '</li>';
+                        html += '<li>Sex: ' + jamaah['Sex'] + '</li>';
+                        html += '<li>Marketing: ' + jamaah['Marketing'] + '</li>';
+                        html += '<li>Father Name: ' + jamaah['Nama Ayah'] + '</li>';
+                        html += '<li>Birth Date: ' + jamaah['Birth: Date'] + '</li>';
+                        html += '<li>Birth City: ' + jamaah['Birth: City'] + '</li>';
+                        html += '<li>Passport No: ' + jamaah['Passport: No.Passport'] + '</li>';
+                        html += '<li>Age: ' + jamaah['Age'] + '</li>';
+                        html += '<li>Room Type: ' + jamaah['Roomlist'] + '</li>';
+                        html += '</ul>';
+                    }
+                    
+                    html += '<p><strong>Raw Data Sample:</strong></p>';
+                    html += '<pre>' + JSON.stringify(response.data.manifest[0], null, 2) + '</pre>';
+                    html += '</div>';
+                    
+                    $('#dataTest').html(html);
+                },
+                error: function(xhr, status, error) {
+                    $('#dataTest').html('<div class="error"><h3>✗ Data Retrieval Failed</h3><p>' + error + '</p></div>');
+                }
+            });
+        }
+        
+        function testExportGeneration() {
+            $('#exportTest').html('<p>Testing export generation...</p>');
+            
+            // Test data for export
+            const testData = {
+                package: {
+                    name: 'UMRAH TEST PACKAGE',
+                    type: 'Umroh',
+                    departure_date: '01/01/2026',
+                    hotel_medinah: 'Hotel Test Medinah',
+                    hotel_makkah: 'Hotel Test Makkah',
+                    hotel_medinah_hcn: 'HCN-MED-001',
+                    hotel_makkah_hcn: 'HCN-MAK-001',
+                    hcn_issue_date: '01/01/2025',
+                    hcn_expiry_date: '31/12/2025'
+                },
+                manifest: [
+                    {
+                        'No': 1,
+                        'Sex': 'MR',
+                        'Name of Passport': 'JOHN DOE',
+                        'Marketing': 'ELI RAHMALIA',
+                        'Nama Ayah': 'ROBERT DOE',
+                        'Birth: Date': '01/01/1990',
+                        'Birth: City': 'JAKARTA',
+                        'Passport: No.Passport': 'A1234567',
+                        'Passport: Issuing Office': 'JAKARTA',
+                        'Passport: Date of Issue': '01/01/2020',
+                        'Passport: Date of Expiry': '01/01/2030',
+                        'Relation': 'SUAMI',
+                        'Age': 34,
+                        'Cabang': 'Bandung',
+                        'Roomlist': 'Double',
+                        'NIK': '1234567890123456',
+                        'Alamat': 'JL. TEST NO. 123',
+                        'Keterangan': 'Test pilgrim'
+                    },
+                    {
+                        'No': 2,
+                        'Sex': 'MRS',
+                        'Name of Passport': 'JANE DOE',
+                        'Marketing': 'ELI RAHMALIA',
+                        'Nama Ayah': 'MICHAEL SMITH',
+                        'Birth: Date': '15/05/1992',
+                        'Birth: City': 'BANDUNG',
+                        'Passport: No.Passport': 'B7654321',
+                        'Passport: Issuing Office': 'BANDUNG',
+                        'Passport: Date of Issue': '15/06/2021',
+                        'Passport: Date of Expiry': '15/06/2031',
+                        'Relation': 'ISTRI',
+                        'Age': 32,
+                        'Cabang': 'Bandung',
+                        'Roomlist': 'Double',
+                        'NIK': '6543210987654321',
+                        'Alamat': 'JL. TEST NO. 123',
+                        'Keterangan': 'Test pilgrim'
+                    }
+                ]
+            };
+            
+            try {
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Create header information
+                const headerInfo = [
+                    [`Manifest Jamaah ${testData.package.name}`],
+                    [`Tanggal ${testData.package.departure_date}`],
+                    [`Program ${testData.package.type}`],
+                    [''],
+                    ['Hotel Information:'],
+                    [`Medinah: ${testData.package.hotel_medinah}`, '', '', `HCN: ${testData.package.hotel_medinah_hcn}`],
+                    [`Makkah: ${testData.package.hotel_makkah}`, '', '', `HCN: ${testData.package.hotel_makkah_hcn}`],
+                    [`HCN Issue Date: ${testData.package.hcn_issue_date}`, '', '', `Expiry Date: ${testData.package.hcn_expiry_date}`],
+                    [''],
+                    ['No', 'Sex', 'Name of Passport', 'Marketing', 'Nama Ayah', 'Birth: Date', 'Birth: City', 
+                     'Passport: No.Passport', 'Passport: Issuing Office', 'Passport: Date of Issue', 
+                     'Passport: Date of Expiry', 'Relation', 'Age', 'Cabang', 'Roomlist', 'NIK', 'Alamat', 'Keterangan']
+                ];
+                
+                // Convert manifest data to array format
+                const manifestRows = testData.manifest.map(row => [
+                    row['No'],
+                    row['Sex'],
+                    row['Name of Passport'],
+                    row['Marketing'],
+                    row['Nama Ayah'],
+                    row['Birth: Date'],
+                    row['Birth: City'],
+                    row['Passport: No.Passport'],
+                    row['Passport: Issuing Office'],
+                    row['Passport: Date of Issue'],
+                    row['Passport: Date of Expiry'],
+                    row['Relation'],
+                    row['Age'],
+                    row['Cabang'],
+                    row['Roomlist'],
+                    row['NIK'],
+                    row['Alamat'],
+                    row['Keterangan']
+                ]);
+                
+                // Combine header and data
+                const allData = [...headerInfo, ...manifestRows];
+                
+                // Create worksheet
+                const wsManifest = XLSX.utils.aoa_to_sheet(allData);
+                
+                // Set column widths
+                wsManifest['!cols'] = [
+                    {wch: 5}, {wch: 5}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 12}, {wch: 15}, 
+                    {wch: 15}, {wch: 15}, {wch: 12}, {wch: 12}, {wch: 15}, {wch: 5}, 
+                    {wch: 10}, {wch: 10}, {wch: 20}, {wch: 40}, {wch: 30}
+                ];
+                
+                // Add the manifest sheet
+                XLSX.utils.book_append_sheet(wb, wsManifest, 'Manifest');
+                
+                let html = '<div class="success"><h3>✓ Export Generation Success</h3>';
+                html += '<p>Successfully created Excel workbook with test data</p>';
+                html += '<p><strong>Headers:</strong> ' + headerInfo[9].length + ' columns</p>';
+                html += '<p><strong>Data Rows:</strong> ' + manifestRows.length + ' jamaah</p>';
+                html += '<p><strong>Total Rows:</strong> ' + allData.length + ' (including headers)</p>';
+                html += '<button onclick="downloadTestExport()">Download Test Export</button>';
+                html += '</div>';
+                
+                $('#exportTest').html(html);
+                
+                // Store the workbook for download
+                window.testWorkbook = wb;
+                
+            } catch (error) {
+                $('#exportTest').html('<div class="error"><h3>✗ Export Generation Failed</h3><p>' + error + '</p></div>');
+            }
+        }
+        
+        function downloadTestExport() {
+            if (window.testWorkbook) {
+                XLSX.writeFile(window.testWorkbook, 'test_manifest_export.xlsx');
+                $('#exportTest').append('<p><strong>Download initiated:</strong> test_manifest_export.xlsx</p>');
+            }
+        }
+        
+        function downloadSampleExport() {
+            $('#downloadTest').html('<p>Generating sample export with real data...</p>');
+            
+            $.ajax({
+                url: 'export_manifest.php',
+                type: 'POST',
+                data: { pak_id: '5', export_type: 'manifest' },
+                success: function(response) {
+                    if (response.success && response.data.manifest.length > 0) {
+                        // Use the same export function as the actual system
+                        const wb = XLSX.utils.book_new();
+                        
+                        const headerInfo = [
+                            [`Manifest Jamaah ${response.data.package.name}`],
+                            [`Tanggal ${response.data.package.departure_date}`],
+                            [`Program ${response.data.package.type}`],
+                            [''],
+                            ['Hotel Information:'],
+                            [`Medinah: ${response.data.package.hotel_medinah}`, '', '', `HCN: ${response.data.package.hotel_medinah_hcn}`],
+                            [`Makkah: ${response.data.package.hotel_makkah}`, '', '', `HCN: ${response.data.package.hotel_makkah_hcn}`],
+                            [`HCN Issue Date: ${response.data.package.hcn_issue_date}`, '', '', `Expiry Date: ${response.data.package.hcn_expiry_date}`],
+                            [''],
+                            ['No', 'Sex', 'Name of Passport', 'Marketing', 'Nama Ayah', 'Birth: Date', 'Birth: City', 
+                             'Passport: No.Passport', 'Passport: Issuing Office', 'Passport: Date of Issue', 
+                             'Passport: Date of Expiry', 'Relation', 'Age', 'Cabang', 'Roomlist', 'NIK', 'Alamat', 'Keterangan']
+                        ];
+                        
+                        const manifestRows = response.data.manifest.map(row => [
+                            row['No'], row['Sex'], row['Name of Passport'], row['Marketing'], row['Nama Ayah'],
+                            row['Birth: Date'], row['Birth: City'], row['Passport: No.Passport'], 
+                            row['Passport: Issuing Office'], row['Passport: Date of Issue'], row['Passport: Date of Expiry'],
+                            row['Relation'], row['Age'], row['Cabang'], row['Roomlist'], row['NIK'], 
+                            row['Alamat'], row['Keterangan']
+                        ]);
+                        
+                        const allData = [...headerInfo, ...manifestRows];
+                        const wsManifest = XLSX.utils.aoa_to_sheet(allData);
+                        
+                        wsManifest['!cols'] = [
+                            {wch: 5}, {wch: 5}, {wch: 25}, {wch: 20}, {wch: 20}, {wch: 12}, {wch: 15}, 
+                            {wch: 15}, {wch: 15}, {wch: 12}, {wch: 12}, {wch: 15}, {wch: 5}, 
+                            {wch: 10}, {wch: 10}, {wch: 20}, {wch: 40}, {wch: 30}
+                        ];
+                        
+                        XLSX.utils.book_append_sheet(wb, wsManifest, 'Manifest');
+                        
+                        const filename = `real_manifest_${response.data.package.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_pak5.xlsx`;
+                        XLSX.writeFile(wb, filename);
+                        
+                        let html = '<div class="success"><h3>✓ Real Data Export Success</h3>';
+                        html += '<p><strong>Package:</strong> ' + response.data.package.name + '</p>';
+                        html += '<p><strong>Jamaah Count:</strong> ' + response.data.manifest.length + '</p>';
+                        html += '<p><strong>File Downloaded:</strong> ' + filename + '</p>';
+                        html += '<p>Check your Downloads folder for the Excel file.</p>';
+                        html += '</div>';
+                        
+                        $('#downloadTest').html(html);
+                    } else {
+                        $('#downloadTest').html('<div class="error"><h3>✗ No Data Available</h3><p>No manifest data found for export</p></div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#downloadTest').html('<div class="error"><h3>✗ Download Failed</h3><p>' + error + '</p></div>');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

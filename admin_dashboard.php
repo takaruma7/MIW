@@ -18,9 +18,8 @@ function deleteJamaahAndRelatedData($nik, $pdo) {
         $stmt->execute([$nik]);
         $files = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Delete from manifest first (due to foreign key constraints)
-        $stmt = $pdo->prepare("DELETE FROM data_manifest WHERE nik = ?");
-        $stmt->execute([$nik]);
+        // The data_manifest table is no longer used - roomlist data is stored in data_jamaah
+        // No need to delete from data_manifest anymore
         
         // Delete from invoice if exists
         $stmt = $pdo->prepare("DELETE FROM data_invoice WHERE nik = ?");

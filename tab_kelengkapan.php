@@ -6,7 +6,6 @@
             <strong>Hotel Madinah:</strong> <?= htmlspecialchars($package['hotel_medinah']) ?><br>
             <strong>Hotel Makkah:</strong> <?= htmlspecialchars($package['hotel_makkah']) ?>
         </p>
-        <button class="btn btn-sm btn-primary export-kelengkapan" data-pakid="<?= $package['pak_id'] ?>">Export Kelengkapan</button>
     </div>
 
     <table class="table table-striped package-table">
