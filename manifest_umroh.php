@@ -15,7 +15,6 @@ foreach ($packages as $package): ?>
             <strong>Hotel Madinah:</strong> <?= htmlspecialchars($package['hotel_medinah']) ?><br>
             <strong>Hotel Makkah:</strong> <?= htmlspecialchars($package['hotel_makkah']) ?>
         </p>
-        <a href="admin_manifest.php" class="btn btn-sm btn-secondary">Go to Export</a>
     </div>
 
     <div class="room-data mb-3">

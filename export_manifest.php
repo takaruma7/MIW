@@ -1,6 +1,28 @@
 <?php
 require_once 'config.php';
 
+// Helper function to calculate document completion status
+function calculateCompletionStatus($jamaah) {
+    $requiredDocs = [
+        'bk_kuning_path', 'foto_path', 'fc_ktp_path', 'fc_ijazah_path', 
+        'fc_kk_path', 'fc_bk_nikah_path', 'fc_akta_lahir_path'
+    ];
+    
+    $completedCount = 0;
+    foreach ($requiredDocs as $doc) {
+        if (!empty($jamaah[$doc])) {
+            $completedCount++;
+        }
+    }
+    
+    $percentage = round(($completedCount / count($requiredDocs)) * 100);
+    
+    if ($percentage == 100) return 'Complete';
+    if ($percentage >= 80) return 'Almost Complete';
+    if ($percentage >= 50) return 'In Progress';
+    return 'Incomplete';
+}
+
 // Set proper headers for JSON response
 header('Content-Type: application/json');
 
@@ -61,11 +83,9 @@ try {
         'medinah' => [],
         'makkah' => []
     ];
+    $kelengkapanData = [];
     
     if ($exportType === 'manifest') {
-        // Get room configurations
-        $medinahRooms = json_decode($package['hotel_medinah_rooms'], true) ?: [];
-        $makkahRooms = json_decode($package['hotel_makkah_rooms'], true) ?: [];
         // Prepare manifest export data
         $counter = 1;
         foreach ($jamaahs as $jamaah) {
@@ -102,40 +122,76 @@ try {
                 'Alamat' => strtoupper($jamaah['alamat'] ?? ''),
                 'Keterangan' => $jamaah['request_khusus'] ?? ''
             ];
+        }
+    }
+    
+    // Always prepare kelengkapan data for all jamaah
+    $counter = 1;
+    foreach ($jamaahs as $jamaah) {
+        // Check document completion status
+        $kelengkapanData[] = [
+            'No' => $counter++,
+            'NIK' => $jamaah['nik'],
+            'Name' => $jamaah['nama'],
+            'Sex' => $jamaah['jenis_kelamin'],
+            'Buku Kuning' => !empty($jamaah['bk_kuning_path']) ? '✓' : '✗',
+            'Foto' => !empty($jamaah['foto_path']) ? '✓' : '✗',
+            'FC KTP' => !empty($jamaah['fc_ktp_path']) ? '✓' : '✗',
+            'FC Ijazah' => !empty($jamaah['fc_ijazah_path']) ? '✓' : '✗',
+            'FC KK' => !empty($jamaah['fc_kk_path']) ? '✓' : '✗',
+            'FC Buku Nikah' => !empty($jamaah['fc_bk_nikah_path']) ? '✓' : '✗',
+            'FC Akta Lahir' => !empty($jamaah['fc_akta_lahir_path']) ? '✓' : '✗',
+            'Upload Date BK' => !empty($jamaah['bk_kuning_path']) ? date('d/m/Y', strtotime($jamaah['bk_kuning_path'])) : '',
+            'Upload Date Foto' => !empty($jamaah['foto_path']) ? date('d/m/Y', strtotime($jamaah['foto_path'])) : '',
+            'Completion Status' => calculateCompletionStatus($jamaah)
+        ];
+    }
+    
+    // Always prepare room lists data for both manifest and roomlist exports
+    foreach ($jamaahs as $jamaah) {
+        $roomPrefix = $jamaah['room_prefix'] ?? '';
+        if (!empty($roomPrefix)) {
+            $roomType = substr($roomPrefix, 0, 1); // Q, T, or D
+            $roomTypeLabel = $roomType === 'Q' ? 'Quad' : ($roomType === 'T' ? 'Triple' : 'Double');
+            $roomNumber = $jamaah['medinah_room_number'] ?? '';
+            $makkahNumber = $jamaah['mekkah_room_number'] ?? '';
             
-            // Add to room lists data
-            $roomPrefix = $jamaah['room_prefix'] ?? '';
-            if (!empty($roomPrefix)) {
-                $roomType = substr($roomPrefix, 0, 1); // Q, T, or D
-                $roomNumber = $jamaah['medinah_room_number'] ?? '';
-                $makkahNumber = $jamaah['mekkah_room_number'] ?? '';
-                
-                // Add to Medinah rooms
-                if (!empty($roomNumber)) {
-                    if (!isset($roomListsData['medinah'][$roomNumber])) {
-                        $roomListsData['medinah'][$roomNumber] = [
-                            'Room Number' => $roomNumber,
-                            'Type' => $roomType === 'Q' ? 'Quad' : ($roomType === 'T' ? 'Triple' : 'Double'),
-                            'Occupants' => []
-                        ];
-                    }
-                    $roomListsData['medinah'][$roomNumber]['Occupants'][] = $jamaah['nama'];
+            // Add to Medinah rooms
+            if (!empty($roomNumber)) {
+                if (!isset($roomListsData['medinah'][$roomNumber])) {
+                    $roomListsData['medinah'][$roomNumber] = [
+                        'Room Number' => $roomNumber,
+                        'Type' => $roomTypeLabel,
+                        'Occupants' => []
+                    ];
                 }
-                
-                // Add to Makkah rooms
-                if (!empty($makkahNumber)) {
-                    if (!isset($roomListsData['makkah'][$makkahNumber])) {
-                        $roomListsData['makkah'][$makkahNumber] = [
-                            'Room Number' => $makkahNumber,
-                            'Type' => $roomType === 'Q' ? 'Quad' : ($roomType === 'T' ? 'Triple' : 'Double'),
-                            'Occupants' => []
-                        ];
-                    }
-                    $roomListsData['makkah'][$makkahNumber]['Occupants'][] = $jamaah['nama'];
+                $roomListsData['medinah'][$roomNumber]['Occupants'][] = [
+                    'name' => $jamaah['nama'],
+                    'nik' => $jamaah['nik'],
+                    'relation' => $jamaah['room_relation'] ?? '',
+                    'age' => $jamaah['umur'] ?? '',
+                    'sex' => $jamaah['jenis_kelamin'] === 'Laki-laki' ? 'MR' : 'MRS'
+                ];
+            }
+            
+            // Add to Makkah rooms
+            if (!empty($makkahNumber)) {
+                if (!isset($roomListsData['makkah'][$makkahNumber])) {
+                    $roomListsData['makkah'][$makkahNumber] = [
+                        'Room Number' => $makkahNumber,
+                        'Type' => $roomTypeLabel,
+                        'Occupants' => []
+                    ];
                 }
+                $roomListsData['makkah'][$makkahNumber]['Occupants'][] = [
+                    'name' => $jamaah['nama'],
+                    'nik' => $jamaah['nik'],
+                    'relation' => $jamaah['room_relation'] ?? '',
+                    'age' => $jamaah['umur'] ?? '',
+                    'sex' => $jamaah['jenis_kelamin'] === 'Laki-laki' ? 'MR' : 'MRS'
+                ];
             }
         }
-
     }
     
     // Convert room lists to flat arrays for export
@@ -143,19 +199,35 @@ try {
     $makkahRoomList = [];
 
     foreach ($roomListsData['medinah'] as $room) {
-        $medinahRoomList[] = [
-            'Room Number' => $room['Room Number'],
-            'Type' => $room['Type'],
-            'Occupants' => implode(', ', $room['Occupants'])
-        ];
+        // Create detailed room entries for roomlist export
+        foreach ($room['Occupants'] as $index => $occupant) {
+            $medinahRoomList[] = [
+                'Room Number' => $room['Room Number'],
+                'Type' => $room['Type'],
+                'Guest' => ($index + 1),
+                'Name' => $occupant['name'],
+                'NIK' => $occupant['nik'],
+                'Sex' => $occupant['sex'],
+                'Age' => $occupant['age'],
+                'Relation' => $occupant['relation']
+            ];
+        }
     }
 
     foreach ($roomListsData['makkah'] as $room) {
-        $makkahRoomList[] = [
-            'Room Number' => $room['Room Number'],
-            'Type' => $room['Type'],
-            'Occupants' => implode(', ', $room['Occupants'])
-        ];
+        // Create detailed room entries for roomlist export
+        foreach ($room['Occupants'] as $index => $occupant) {
+            $makkahRoomList[] = [
+                'Room Number' => $room['Room Number'],
+                'Type' => $room['Type'],
+                'Guest' => ($index + 1),
+                'Name' => $occupant['name'],
+                'NIK' => $occupant['nik'],
+                'Sex' => $occupant['sex'],
+                'Age' => $occupant['age'],
+                'Relation' => $occupant['relation']
+            ];
+        }
     }
 
     header('Content-Type: application/json');
@@ -167,16 +239,12 @@ try {
                 'medinah' => $medinahRoomList,
                 'makkah' => $makkahRoomList
             ],
+            'kelengkapan' => $kelengkapanData,
             'package' => [
                 'name' => $package['program_pilihan'],
                 'type' => $package['jenis_paket'],
-                'departure_date' => date('d/m/Y', strtotime($package['tanggal_keberangkatan'])),
-                'hotel_medinah' => $package['hotel_medinah'],
-                'hotel_medinah_hcn' => json_decode($package['hcn'], true)['medinah'] ?? '',
-                'hotel_makkah' => $package['hotel_makkah'],
-                'hotel_makkah_hcn' => json_decode($package['hcn'], true)['makkah'] ?? '',
-                'hcn_issue_date' => json_decode($package['hcn'], true)['issued_date'] ?? '',
-                'hcn_expiry_date' => json_decode($package['hcn'], true)['expiry_date'] ?? ''
+                'departure_date' => date('d/m/Y', strtotime($package['tanggal_keberangkatan']))
+                // Hotel information removed to provide more space for manifest table
             ]
         ],
         'type' => $exportType

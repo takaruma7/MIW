@@ -33,7 +33,7 @@ $packages = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="card">
                     <div class="card-header">
                         <h5>Export Package Data</h5>
-                        <p class="text-muted small">Export manifest data based on roomlist assignment</p>
+                        <p class="text-muted small">Export manifest data with roomlist and kelengkapan in a single Excel file</p>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -67,16 +67,11 @@ $packages = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td><?= $jamaahCount ?></td>
                                         <td>
                                             <div class="btn-group">
-                                                <a href="admin_roomlist.php" class="btn btn-sm btn-secondary me-2" 
-                                                        data-bs-toggle="tooltip"
-                                                        title="Manage Roomlist">
-                                                    <i class="bi bi-building"></i> Roomlist
-                                                </a>
                                                 <button class="btn btn-sm btn-primary export-manifest" 
                                                         data-pakid="<?= $package['pak_id'] ?>"
                                                         data-bs-toggle="tooltip"
-                                                        title="Export Manifest">
-                                                    <i class="bi bi-file-earmark-excel"></i> Export
+                                                        title="Export Manifest with Roomlist and Kelengkapan">
+                                                    <i class="bi bi-file-earmark-excel"></i> Export Manifest
                                                 </button>
                                             </div>
                                         </td>
@@ -149,89 +144,7 @@ $packages = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 }
             });
 
-            // Handle manifest export
-            $(document).on('click', '.export-manifest', function() {
-                const pakId = $(this).data('pakid');
-                if (!pakId) {
-                    alert('No package ID found for export');
-                    return;
-                }
-                
-                // Show export status modal
-                const exportModal = new bootstrap.Modal(document.getElementById('exportStatusModal'));
-                exportModal.show();
-                
-                // Reset modal content
-                $('#exportStatus').removeClass('alert-danger').addClass('alert-info').html(`
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    Processing export...
-                `);
-                $('#downloadLink').addClass('d-none');
-                
-                // Call the export function from manifest_scripts.js with modal feedback
-                $.ajax({
-                    url: 'export_manifest.php',
-                    type: 'POST',
-                    data: { pak_id: pakId, export_type: 'manifest' },
-                    success: function(response) {
-                        console.log('=== ADMIN MANIFEST EXPORT DEBUG ===');
-                        console.log('Raw response:', response);
-                        console.log('Response type:', typeof response);
-                        console.log('Response success:', response.success);
-                        console.log('Response data:', response.data);
-                        
-                        if (!response.success) {
-                            console.error('Export failed:', response.message);
-                            $('#exportStatus').removeClass('alert-info').addClass('alert-danger').html(
-                                `<i class="bi bi-exclamation-triangle"></i> ${response.message || 'Error during export'}`
-                            );
-                            return;
-                        }
-                        
-                        if (!response.data || !response.data.manifest || response.data.manifest.length === 0) {
-                            console.error('No manifest data found');
-                            console.log('Response data structure:', response.data);
-                            $('#exportStatus').removeClass('alert-info').addClass('alert-danger').html(
-                                `<i class="bi bi-exclamation-triangle"></i> No data found for export`
-                            );
-                            return;
-                        }
-                        
-                        console.log('Manifest data found:', response.data.manifest.length, 'records');
-                        console.log('Calling exportToExcel function...');
-                        
-                        // Use the simplified export function
-                        if (window.exportToExcel) {
-                            window.exportToExcel(pakId, 'manifest', response.data);
-                            
-                            // Update modal to show success
-                            $('#exportStatus').removeClass('alert-info').addClass('alert-success').html(
-                                `<i class="bi bi-check-circle"></i> Export completed successfully! (${response.data.manifest.length} records)`
-                            );
-                            $('#downloadLink').removeClass('d-none');
-                        } else {
-                            console.error('exportToExcel function not found on window object');
-                            $('#exportStatus').removeClass('alert-info').addClass('alert-danger').html(
-                                `<i class="bi bi-exclamation-triangle"></i> Export function not available`
-                            );
-                        }
-                        
-                        console.log('=== ADMIN MANIFEST EXPORT DEBUG END ===');
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Export error:', error);
-                        let message = 'Error generating Excel file';
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            message = response.message || message;
-                        } catch (e) {}
-                        
-                        $('#exportStatus').removeClass('alert-info').addClass('alert-danger').html(
-                            `<i class="bi bi-exclamation-triangle"></i> ${message}`
-                        );
-                    }
-                });
-            });
+            // Note: Export handlers are managed by manifest_scripts.js
         });
     </script>
 </body>
