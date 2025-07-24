@@ -1,0 +1,222 @@
+/**
+ * Document Preview Handler
+ * Manages document preview, download and listing
+ */
+
+class DocumentPreviewHandler {
+    constructor(options = {}) {
+        this.options = Object.assign({
+            apiUrl: 'handle_document_upload.php',
+            fileHandlerUrl: 'file_handler.php',
+            documentType: 'documents',
+            modalId: 'filePreviewModal'
+        }, options);
+        
+        // Bind methods
+        this.fetchExistingDocuments = this.fetchExistingDocuments.bind(this);
+        this.handleFile = this.handleFile.bind(this);
+        this.renderDocumentPreview = this.renderDocumentPreview.bind(this);
+        this.showPreviewModal = this.showPreviewModal.bind(this);
+        this._showPreviewContent = this._showPreviewContent.bind(this);
+    }
+    
+    /**
+     * Fetch existing documents for a jamaah by NIK
+     */
+    async fetchExistingDocuments(nik, previewContainerSelector = '.document-preview') {
+        if (!nik) {
+            console.error('NIK is required to fetch documents');
+            return null;
+        }
+        
+        try {
+            const response = await fetch(`${this.options.apiUrl}?action=get_documents&nik=${encodeURIComponent(nik)}`);
+            
+            if (!response.ok) {
+                throw new Error(`Network response error: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Process each document type
+                const previewContainers = document.querySelectorAll(previewContainerSelector);
+                
+                previewContainers.forEach(container => {
+                    // Reset container first
+                    container.innerHTML = '<div class="text-muted small">No file uploaded</div>';
+                    
+                    // Get the document type from the container ID or data attribute
+                    const docType = container.id.replace('_preview', '') || 
+                                   container.getAttribute('data-document-type');
+                    
+                    // If we have a file for this document type, show preview buttons
+                    if (docType && data.data[docType]) {
+                        this.renderDocumentPreview(container, data.data[docType]);
+                    }
+                });
+                
+                return data.data;
+            } else {
+                console.error('Failed to fetch documents:', data.message);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Render document preview elements
+     */
+    renderDocumentPreview(container, filePath) {
+        if (!filePath) return;
+        
+        // Create preview/download buttons
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'btn btn-sm btn-outline-primary me-2';
+        previewBtn.innerHTML = '<i class="bi bi-eye"></i> Preview';
+        previewBtn.onclick = (e) => {
+            e.preventDefault();
+            this.handleFile(filePath, 'preview');
+        };
+        
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'btn btn-sm btn-outline-success';
+        downloadBtn.innerHTML = '<i class="bi bi-download"></i> Download';
+        downloadBtn.onclick = (e) => {
+            e.preventDefault();
+            this.handleFile(filePath, 'download');
+        };
+        
+        // Add timestamp if available
+        const timestamp = document.createElement('div');
+        timestamp.className = 'text-muted small mt-1';
+        timestamp.textContent = `Last updated: ${new Date().toLocaleString()}`;
+        
+        container.innerHTML = '';
+        container.appendChild(previewBtn);
+        container.appendChild(downloadBtn);
+        container.appendChild(timestamp);
+    }
+    
+    /**
+     * Handle file preview or download
+     */
+    handleFile(filePath, action = 'preview') {
+        if (!filePath) return;
+        
+        // Extract filename from path and clean it
+        const filename = filePath.split(/[\\/]/).pop();
+        const url = `${this.options.fileHandlerUrl}?file=${encodeURIComponent(filename)}&type=${this.options.documentType}&action=${action}`;
+        
+        if (action === 'preview') {
+            // For PDFs and images, show in modal
+            const extension = filename.split('.').pop().toLowerCase();
+            if (['pdf', 'jpg', 'jpeg', 'png'].includes(extension)) {
+                this.showPreviewModal(url, extension);
+            } else {
+                // For other file types, download directly
+                window.location.href = url + '&action=download';
+            }
+        } else {
+            // Direct download
+            window.location.href = url;
+        }
+    }
+    
+    /**
+     * Show preview modal
+     */
+    showPreviewModal(url, fileType) {
+        const modal = document.getElementById(this.options.modalId);
+        if (!modal) {
+            console.error(`Preview modal with ID ${this.options.modalId} not found`);
+            // Fallback to opening in new tab
+            window.open(url, '_blank');
+            return;
+        }
+        
+        const modalBody = modal.querySelector('.modal-body');
+        const bootstrap = window.bootstrap;
+        
+        // Clear previous content
+        modalBody.innerHTML = '';
+        
+        // Add loader
+        const loader = document.createElement('div');
+        loader.className = 'd-flex justify-content-center my-5';
+        loader.innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>';
+        modalBody.appendChild(loader);
+        
+        // First, handle modal stacking issues by closing document modal
+        try {
+            // Try to close the document modal if it's open
+            const documentModal = document.getElementById('documentModal');
+            if (documentModal) {
+                const docBsModal = bootstrap.Modal.getInstance(documentModal);
+                if (docBsModal) {
+                    docBsModal.hide();
+                    // Give it some time to fully close
+                    setTimeout(() => {
+                        this._showPreviewContent(modal, modalBody, url, fileType);
+                    }, 150);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Error handling modal stacking:', e);
+        }
+        
+        // If we reach here, just show the content directly
+        this._showPreviewContent(modal, modalBody, url, fileType);
+    }
+    
+    /**
+     * Internal helper to show preview content
+     */
+    _showPreviewContent(modal, modalBody, url, fileType) {
+        // Create content based on file type
+        if (fileType === 'pdf') {
+            const embed = document.createElement('embed');
+            embed.src = url;
+            embed.type = 'application/pdf';
+            embed.style.width = '100%';
+            embed.style.height = '600px';
+            
+            // Clear loader and add embed
+            modalBody.innerHTML = '';
+            modalBody.appendChild(embed);
+        } else {
+            const img = new Image();
+            img.className = 'img-fluid';
+            img.alt = 'Preview';
+            
+            // Hide loader when image loads
+            img.onload = () => {
+                modalBody.innerHTML = '';
+                modalBody.appendChild(img);
+            };
+            
+            // Start loading the image
+            img.src = url;
+        }
+        
+        // Show modal using Bootstrap
+        try {
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        } catch (e) {
+            console.error('Error showing modal:', e);
+            // Fallback to show the file in a new tab
+            window.open(url, '_blank');
+        }
+    }
+}
+}
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DocumentPreviewHandler;
+}

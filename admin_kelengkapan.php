@@ -14,8 +14,32 @@ $jamaahs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Management - MIW</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="admin_styles.css">
+    <style>
+        .document-status {
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .document-preview {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            background-color: #f8f9fa;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .upload-progress {
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -138,6 +162,9 @@ $jamaahs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/file_handlers.js"></script>
+    <script src="js/document-management/document-management.js"></script>
     <script>
         $(document).ready(function() {
             $('#documentTable').DataTable({
@@ -156,6 +183,16 @@ $jamaahs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 }
             });
         });
+
+        // Global function to open document modal
+        function openDocumentModal(nik, name) {
+            if (typeof DocumentManager !== 'undefined' && DocumentManager.openDocumentModal) {
+                DocumentManager.openDocumentModal(nik, name);
+            } else {
+                console.error('DocumentManager not available');
+                alert('Document management system is not available. Please refresh the page.');
+            }
+        }
     </script>
 </body>
 </html>
