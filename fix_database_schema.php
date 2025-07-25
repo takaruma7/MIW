@@ -32,95 +32,19 @@ require_once 'config.heroku.php';
         echo "<div class='info'>🗄️ Connecting to Heroku PostgreSQL database...</div>";
         
         try {
-            // Create PostgreSQL tables with correct schema for your existing app
-            $sql = "
-                -- Create paket table (package information)
-                CREATE TABLE IF NOT EXISTS paket (
-                    pak_id SERIAL PRIMARY KEY,
-                    nama_paket VARCHAR(255) NOT NULL,
-                    jenis_paket VARCHAR(50) NOT NULL CHECK (jenis_paket IN ('Haji', 'Umroh')),
-                    tanggal_keberangkatan DATE,
-                    tanggal_kepulangan DATE,
-                    harga_quad DECIMAL(15,2),
-                    harga_triple DECIMAL(15,2),
-                    harga_double DECIMAL(15,2),
-                    deskripsi TEXT,
-                    hotel_makkah VARCHAR(255),
-                    hotel_madinah VARCHAR(255),
-                    maskapai VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                -- Create data_jamaah table (customer data)
-                CREATE TABLE IF NOT EXISTS data_jamaah (
-                    id SERIAL PRIMARY KEY,
-                    pak_id INTEGER REFERENCES paket(pak_id) ON DELETE SET NULL,
-                    nama_lengkap VARCHAR(255) NOT NULL,
-                    jenis_kelamin VARCHAR(20) NOT NULL CHECK (jenis_kelamin IN ('Laki-laki', 'Perempuan')),
-                    tempat_lahir VARCHAR(255),
-                    tanggal_lahir DATE,
-                    ktp VARCHAR(20),
-                    alamat TEXT,
-                    no_telepon VARCHAR(20),
-                    email VARCHAR(255),
-                    pekerjaan VARCHAR(255),
-                    pendidikan VARCHAR(255),
-                    golongan_darah VARCHAR(5),
-                    nama_kerabat VARCHAR(255),
-                    no_telepon_kerabat VARCHAR(20),
-                    hubungan_kerabat VARCHAR(100),
-                    riwayat_penyakit TEXT,
-                    no_passport VARCHAR(50),
-                    tanggal_berakhir_passport DATE,
-                    asal_kota VARCHAR(255),
-                    ukuran_baju VARCHAR(10),
-                    tanggal_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    status_pembayaran VARCHAR(50) DEFAULT 'Belum Lunas' CHECK (status_pembayaran IN ('Belum Lunas', 'Lunas')),
-                    metode_pembayaran VARCHAR(100),
-                    total_harga DECIMAL(15,2),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                -- Create dokumen table (document management)
-                CREATE TABLE IF NOT EXISTS dokumen (
-                    id SERIAL PRIMARY KEY,
-                    jamaah_id INTEGER REFERENCES data_jamaah(id) ON DELETE CASCADE,
-                    jenis_dokumen VARCHAR(255) NOT NULL,
-                    nama_file VARCHAR(255) NOT NULL,
-                    file_path VARCHAR(500) NOT NULL,
-                    tanggal_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-                    keterangan TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                -- Create pembatalan table (cancellation management)
-                CREATE TABLE IF NOT EXISTS pembatalan (
-                    id SERIAL PRIMARY KEY,
-                    jamaah_id INTEGER REFERENCES data_jamaah(id) ON DELETE CASCADE,
-                    alasan TEXT NOT NULL,
-                    tanggal_pengajuan TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-                    keterangan_admin TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-
-                -- Insert sample data
-                INSERT INTO paket (nama_paket, jenis_paket, tanggal_keberangkatan, tanggal_kepulangan, harga_quad, harga_triple, harga_double, deskripsi, hotel_makkah, hotel_madinah, maskapai) 
-                VALUES 
-                    ('Paket Haji Plus 2024', 'Haji', '2024-08-15', '2024-09-25', 65000000.00, 70000000.00, 75000000.00, 'Paket haji dengan fasilitas terbaik', 'Hotel Dar Al Hijra', 'Hotel Al Madinah Holiday', 'Garuda Indonesia'),
-                    ('Paket Umroh Ramadhan', 'Umroh', '2024-04-01', '2024-04-15', 18000000.00, 22000000.00, 25000000.00, 'Paket umroh spesial bulan ramadhan', 'Hotel Makkah Clock Royal Tower', 'Hotel Anwar Al Madinah', 'Saudia Airlines'),
-                    ('Paket Umroh Reguler', 'Umroh', '2024-06-01', '2024-06-11', 15000000.00, 18000000.00, 22000000.00, 'Paket umroh standar dengan pelayanan prima', 'Hotel Conrad Makkah', 'Hotel Pullman Zamzam', 'Emirates')
-                ON CONFLICT DO NOTHING;
-
-                -- Create indexes for better performance
-                CREATE INDEX IF NOT EXISTS idx_data_jamaah_pak_id ON data_jamaah(pak_id);
-                CREATE INDEX IF NOT EXISTS idx_data_jamaah_email ON data_jamaah(email);
-                CREATE INDEX IF NOT EXISTS idx_dokumen_jamaah_id ON dokumen(jamaah_id);
-                CREATE INDEX IF NOT EXISTS idx_pembatalan_jamaah_id ON pembatalan(jamaah_id);
-            ";
+            // Read and execute the MySQL-compatible schema
+            $sqlFile = __DIR__ . '/init_database_postgresql_mysql_compatible.sql';
+            if (!file_exists($sqlFile)) {
+                throw new Exception("PostgreSQL MySQL-compatible schema file not found: $sqlFile");
+            }
+            
+            $sql = file_get_contents($sqlFile);
+            if ($sql === false) {
+                throw new Exception("Failed to read PostgreSQL schema file");
+            }
+            
+            echo "<div class='info'>📂 Reading MySQL-compatible schema from: $sqlFile</div>";
+            echo "<div class='info'>📦 Schema size: " . number_format(strlen($sql)) . " bytes</div>";
             
             // Execute the SQL
             $pdo->exec($sql);
