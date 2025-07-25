@@ -1,11 +1,81 @@
 <?php
-// upload_handler.php
+// Enhanced upload handler with Heroku support
+
+require_once 'heroku_file_manager.php';
 
 class UploadHandler {
-    private $uploadBaseDir;
-    private $allowedTypes;
-    private $maxSize;
+    private $herokuManager;
     private $errors = [];
+
+    public function __construct() {
+        $this->herokuManager = new HerokuFileManager();
+        $this->errors = [];
+    }
+
+    /**
+     * Handle file upload with custom naming
+     */
+    public function handleUpload($file, $targetDir, $customName) {
+        $this->errors = [];
+        
+        $result = $this->herokuManager->handleUpload($file, $targetDir, $customName);
+        
+        if (!$result['success']) {
+            $this->errors[] = $result['error'];
+            return false;
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Generate custom filename
+     */
+    public function generateCustomFilename($nik, $documentType, $pakId = null) {
+        $timestamp = date('YmdHis');
+        
+        if ($pakId) {
+            return "{$pakId}_{$nik}_{$documentType}_{$timestamp}";
+        }
+        
+        return "{$nik}_{$documentType}_{$timestamp}";
+    }
+    
+    /**
+     * Get upload errors
+     */
+    public function getErrors() {
+        return $this->errors;
+    }
+    
+    /**
+     * Check if file exists
+     */
+    public function fileExists($filename, $directory) {
+        return $this->herokuManager->fileExists($filename, $directory);
+    }
+    
+    /**
+     * Get file path
+     */
+    public function getFilePath($filename, $directory) {
+        return $this->herokuManager->getFilePath($filename, $directory);
+    }
+    
+    /**
+     * Get Heroku warning if applicable
+     */
+    public function getHerokuWarning() {
+        return $this->herokuManager->getHerokuWarning();
+    }
+    
+    /**
+     * Legacy method for backward compatibility
+     */
+    public function handleFileUpload($file, $targetDir, $customName) {
+        return $this->handleUpload($file, $targetDir, $customName);
+    }
+}
 
     public function __construct($uploadBaseDir = 'uploads') {
         $this->uploadBaseDir = rtrim($_SERVER['DOCUMENT_ROOT'] . '/MIW/' . $uploadBaseDir, '/');
