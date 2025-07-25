@@ -1,0 +1,12 @@
+# Database Migration Script: MySQL to PostgreSQL
+# For Render.com deployment
+
+FROM postgres:15
+
+# Install mysql client for data import
+RUN apt-get update && apt-get install -y mysql-client
+
+# Copy migration scripts
+COPY migrate_to_postgres.sql /docker-entrypoint-initdb.d/
+
+# The database will be initialized with this script
