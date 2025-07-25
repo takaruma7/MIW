@@ -73,6 +73,34 @@ ini_set('max_execution_time', $config['app']['max_execution_time']);
 ini_set('upload_max_filesize', $config['upload']['max_file_size']);
 ini_set('post_max_size', $config['upload']['max_file_size']);
 
+// Set compatibility variables for legacy code
+$conn = $pdo; // Ensure $conn is available for older code
+
+// Define constants for compatibility
+define('SMTP_HOST', $config['email']['smtp_host']);
+define('SMTP_USERNAME', $config['email']['smtp_username']);
+define('SMTP_PASSWORD', $config['email']['smtp_password']);
+define('SMTP_PORT', $config['email']['smtp_port']);
+define('SMTP_ENCRYPTION', $config['email']['smtp_encryption']);
+define('SMTP_SECURE', $config['email']['smtp_encryption']);
+
+// Other configurations
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Disable for production
+date_default_timezone_set('Asia/Jakarta');
+
+// Email settings
+define('EMAIL_FROM', $config['email']['smtp_username']);
+define('EMAIL_FROM_NAME', 'MIW Travel');
+define('EMAIL_SUBJECT', 'Pendaftaran Umroh/Haji Anda');
+define('ADMIN_EMAIL', $config['email']['smtp_username']);
+define('EMAIL_ENABLED', true);
+
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Security headers for production
 if ($config['app']['secure_headers'] === 'true') {
     header('X-Content-Type-Options: nosniff');
@@ -81,5 +109,4 @@ if ($config['app']['secure_headers'] === 'true') {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 }
 
-return $config;
 ?>

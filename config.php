@@ -1,5 +1,23 @@
 <?php
-// Database configuration
+// Environment-aware configuration routing
+// Detects deployment environment and loads appropriate config
+
+// Check for Heroku environment
+if (isset($_ENV['DATABASE_URL']) || isset($_ENV['HEROKU_APP_NAME']) || isset($_ENV['DYNO'])) {
+    // Heroku deployment detected
+    require_once __DIR__ . '/config.heroku.php';
+    // $pdo and $conn are set by config.heroku.php
+    return;
+} 
+// Check for Render environment  
+elseif (isset($_ENV['RENDER']) || (($_ENV['APP_ENV'] ?? '') === 'production' && file_exists(__DIR__ . '/config.render.php'))) {
+    // Render deployment detected
+    require_once __DIR__ . '/config.render.php';
+    // $pdo and $conn are set by config.render.php
+    return;
+}
+
+// Local/Development environment (MySQL)
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
 define('DB_NAME', 'data_miw');
