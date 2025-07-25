@@ -1,12 +1,18 @@
 <?php
 // Universal Database Initialization Script
-// Works with both MySQL (Railway/local) and PostgreSQL (Render)
+// Works with MySQL (local/Railway) and PostgreSQL (Render/Heroku)
 
 // Detect environment and load appropriate config
-if (file_exists('config.render.php') && ($_ENV['APP_ENV'] ?? '') === 'production') {
+if (isset($_ENV['DATABASE_URL']) || file_exists('config.heroku.php')) {
+    // Heroku deployment detected
+    require_once 'config.heroku.php';
+    $dbType = 'postgresql';
+} elseif (file_exists('config.render.php') && ($_ENV['APP_ENV'] ?? '') === 'production') {
+    // Render deployment detected
     require_once 'config.render.php';
     $dbType = 'postgresql';
 } else {
+    // Local or Railway deployment
     require_once 'config.php';
     $dbType = 'mysql';
 }
