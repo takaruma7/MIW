@@ -28,7 +28,7 @@ function getMimeType($filepath) {
 // Function to output file for preview/download
 function outputFile($filepath, $filename, $download = false) {
     if (!file_exists($filepath)) {
-        // Try alternative locations for Heroku
+        // Try alternative locations
         $alternativePaths = [
             '/tmp/uploads/' . basename($filepath),
             __DIR__ . '/../uploads/' . basename($filepath),
@@ -46,7 +46,7 @@ function outputFile($filepath, $filename, $download = false) {
         
         if (!$found) {
             header('HTTP/1.0 404 Not Found');
-            exit('File not found. Note: On Heroku, uploaded files are temporary and may be deleted during dyno restarts.');
+            exit('File not found. This may be due to Heroku\'s ephemeral filesystem. Files uploaded are temporary and may be deleted during dyno restarts.');
         }
     }
 

@@ -14,14 +14,14 @@ $page = $_GET['page'] ?? 1;
 $offset = ($page - 1) * $recordsPerPage;
 
 // Get total records count
-$countStmt = $conn->query("SELECT COUNT(*) FROM data_pembatalan p JOIN data_jamaah j ON p.nik = j.nik");
+$countStmt = $conn->query("SELECT COUNT(*) FROM data_pembatalan");
 $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $recordsPerPage);
 
-// Get records with sorting and pagination (PostgreSQL syntax)
-$query = "SELECT p.*, j.nama, j.pak_id 
+// Get records with sorting and pagination (PostgreSQL syntax) - Use LEFT JOIN for safety
+$query = "SELECT p.*, COALESCE(j.nama, p.nama) as jamaah_nama, j.pak_id 
           FROM data_pembatalan p
-          JOIN data_jamaah j ON p.nik = j.nik 
+          LEFT JOIN data_jamaah j ON p.nik = j.nik 
           ORDER BY p.$sort $order 
           LIMIT :per_page OFFSET :offset";
 $stmt = $conn->prepare($query);

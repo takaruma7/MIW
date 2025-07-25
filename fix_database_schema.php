@@ -32,10 +32,10 @@ require_once 'config.heroku.php';
         echo "<div class='info'>🗄️ Connecting to Heroku PostgreSQL database...</div>";
         
         try {
-            // Read and execute the exact PostgreSQL schema that matches MySQL data_miw
-            $sqlFile = __DIR__ . '/init_database_postgresql_exact_miw.sql';
+            // Read and execute the complete PostgreSQL schema that matches MySQL data_miw exactly
+            $sqlFile = __DIR__ . '/init_database_postgresql_complete_miw.sql';
             if (!file_exists($sqlFile)) {
-                throw new Exception("PostgreSQL exact MIW schema file not found: $sqlFile");
+                throw new Exception("PostgreSQL complete MIW schema file not found: $sqlFile");
             }
             
             $sql = file_get_contents($sqlFile);
@@ -43,14 +43,14 @@ require_once 'config.heroku.php';
                 throw new Exception("Failed to read PostgreSQL schema file");
             }
             
-            echo "<div class='info'>📂 Reading exact MIW schema from: $sqlFile</div>";
+            echo "<div class='info'>📂 Reading complete MIW schema from: $sqlFile</div>";
             echo "<div class='info'>📦 Schema size: " . number_format(strlen($sql)) . " bytes</div>";
             
             // Execute the SQL
             $pdo->exec($sql);
             
             echo "<div class='success'>✅ Database schema created successfully!</div>";
-            echo "<div class='info'>📋 Schema source: MySQL data_miw backup (exact match)</div>";
+            echo "<div class='info'>📋 Schema source: MySQL data_miw backup (exact match with sample data)</div>";
             
             // Test the tables
             $result = $pdo->query("SELECT COUNT(*) as count FROM data_paket")->fetch();
@@ -66,15 +66,20 @@ require_once 'config.heroku.php';
                 
                 // Test admin_pembatalan.php compatibility
                 try {
-                    $testQuery = $pdo->prepare("SELECT COUNT(*) FROM data_pembatalan p JOIN data_jamaah j ON p.nik = j.nik");
+                    $testQuery = $pdo->prepare("SELECT COUNT(*) FROM data_pembatalan p LEFT JOIN data_jamaah j ON p.nik = j.nik");
                     $testQuery->execute();
-                    echo "<div class='success'>✅ admin_pembatalan.php JOIN query compatibility verified</div>";
+                    echo "<div class='success'>✅ admin_pembatalan.php LEFT JOIN query compatibility verified</div>";
                 } catch (Exception $e) {
                     echo "<div class='warning'>⚠️ admin_pembatalan.php JOIN test: " . htmlspecialchars($e->getMessage()) . "</div>";
                 }
             }
             
-            echo "<div class='info'>🎉 Your database is now ready! You can test your application.</div>";
+            // Check jamaah data
+            $jamaaahResult = $pdo->query("SELECT COUNT(*) as count FROM data_jamaah")->fetch();
+            echo "<div class='success'>✅ Found {$jamaaahResult['count']} jamaah records in database</div>";
+            
+            echo "<div class='info'>🎉 Your database is now ready with complete schema and sample data! You can test your application.</div>";
+            echo "<div class='warning'>⚠️ Note: File upload functionality may be limited on Heroku due to ephemeral filesystem. Consider using cloud storage for production.</div>";
             
         } catch (PDOException $e) {
             echo "<div class='error'>❌ Database error: " . htmlspecialchars($e->getMessage()) . "</div>";
