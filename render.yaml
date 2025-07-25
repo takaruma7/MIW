@@ -1,54 +1,56 @@
 services:
   # Web Service using Docker
   - type: web
-    name: miw-production
+    name: miw-web
     env: docker
-    region: singapore # Adjust based on your target audience
-    plan: free # or choose a paid plan if needed
+    region: singapore
+    plan: free
     branch: main
     healthCheckPath: /
+    buildCommand: docker build -t miw-app .
+    startCommand: apache2-foreground
     envVars:
       - key: APP_ENV
         value: production
       - key: DB_HOST
         fromDatabase:
-          name: miw-db
+          name: miw-database
           property: host
       - key: DB_PORT
         fromDatabase:
-          name: miw-db
+          name: miw-database
           property: port
       - key: DB_NAME
         fromDatabase:
-          name: miw-db
+          name: miw-database
           property: database
       - key: DB_USER
         fromDatabase:
-          name: miw-db
+          name: miw-database
           property: user
       - key: DB_PASS
         fromDatabase:
-          name: miw-db
+          name: miw-database
           property: password
       - key: SMTP_HOST
-        sync: false # Will be set manually
+        value: smtp.gmail.com
       - key: SMTP_USERNAME
-        sync: false
+        value: drakestates@gmail.com
       - key: SMTP_PASSWORD
-        sync: false
+        value: lqqj vnug vrau dkfa
       - key: SMTP_PORT
         value: "587"
       - key: SMTP_ENCRYPTION
-        value: "tls"
-      - key: PDF_STORAGE
-        value: /tmp/pdfs
+        value: tls
+      - key: MAX_FILE_SIZE
+        value: 10M
+      - key: MAX_EXECUTION_TIME
+        value: "300"
+      - key: SECURE_HEADERS
+        value: "true"
 
-  # Database Service
-  - type: pserv
-    name: miw-db
-    env: docker
-    plan: free # or choose a paid plan
-    disk:
-      name: data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 10
+databases:
+  - name: miw-database
+    databaseName: data_miw
+    user: miw_user
+    plan: free
