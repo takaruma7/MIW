@@ -1,1 +1,1 @@
-web: vendor/bin/heroku-php-apache2
+web: docker-php-entrypoint apache2-foreground
