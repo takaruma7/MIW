@@ -31,7 +31,7 @@ function initializeDatabase($pdo, $dbType) {
         
         if ($dbType === 'postgresql') {
             // PostgreSQL initialization
-            $sql = file_get_contents('init_database_postgresql.sql');
+            $sql = file_get_contents('init_database_postgresql_fixed.sql');
         } else {
             // MySQL initialization
             $sql = "
@@ -160,8 +160,10 @@ function initializeDatabase($pdo, $dbType) {
 function checkTables($pdo, $dbType) {
     try {
         if ($dbType === 'postgresql') {
-            $result = $pdo->query("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'paket'")->fetch();
+            // Check for data_jamaah table (main table used by app)
+            $result = $pdo->query("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'data_jamaah'")->fetch();
         } else {
+            // Check for paket table in MySQL
             $result = $pdo->query("SHOW TABLES LIKE 'paket'")->fetch();
         }
         return $result !== false && ($result['count'] > 0 || count($result) > 0);

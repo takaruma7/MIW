@@ -18,12 +18,12 @@ $countStmt = $conn->query("SELECT COUNT(*) FROM data_pembatalan p JOIN data_jama
 $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $recordsPerPage);
 
-// Get records with sorting and pagination
+// Get records with sorting and pagination (PostgreSQL syntax)
 $query = "SELECT p.*, j.nama, j.pak_id 
           FROM data_pembatalan p
           JOIN data_jamaah j ON p.nik = j.nik 
           ORDER BY p.$sort $order 
-          LIMIT :offset, :per_page";
+          LIMIT :per_page OFFSET :offset";
 $stmt = $conn->prepare($query);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->bindValue(':per_page', $recordsPerPage, PDO::PARAM_INT);

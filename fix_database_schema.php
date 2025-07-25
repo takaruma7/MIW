@@ -32,10 +32,10 @@ require_once 'config.heroku.php';
         echo "<div class='info'>🗄️ Connecting to Heroku PostgreSQL database...</div>";
         
         try {
-            // Read and execute the MySQL-compatible schema
-            $sqlFile = __DIR__ . '/init_database_postgresql_mysql_compatible.sql';
+            // Read and execute the exact PostgreSQL schema that matches MySQL data_miw
+            $sqlFile = __DIR__ . '/init_database_postgresql_exact_miw.sql';
             if (!file_exists($sqlFile)) {
-                throw new Exception("PostgreSQL MySQL-compatible schema file not found: $sqlFile");
+                throw new Exception("PostgreSQL exact MIW schema file not found: $sqlFile");
             }
             
             $sql = file_get_contents($sqlFile);
@@ -43,26 +43,44 @@ require_once 'config.heroku.php';
                 throw new Exception("Failed to read PostgreSQL schema file");
             }
             
-            echo "<div class='info'>📂 Reading MySQL-compatible schema from: $sqlFile</div>";
+            echo "<div class='info'>📂 Reading exact MIW schema from: $sqlFile</div>";
             echo "<div class='info'>📦 Schema size: " . number_format(strlen($sql)) . " bytes</div>";
             
             // Execute the SQL
             $pdo->exec($sql);
             
             echo "<div class='success'>✅ Database schema created successfully!</div>";
+            echo "<div class='info'>📋 Schema source: MySQL data_miw backup (exact match)</div>";
             
             // Test the tables
-            $result = $pdo->query("SELECT COUNT(*) as count FROM paket")->fetch();
+            $result = $pdo->query("SELECT COUNT(*) as count FROM data_paket")->fetch();
             echo "<div class='success'>✅ Found {$result['count']} packages in database</div>";
             
             $result = $pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name")->fetchAll(PDO::FETCH_COLUMN);
             echo "<div class='success'>✅ Created tables: " . implode(', ', $result) . "</div>";
+            
+            // Check if data_pembatalan table exists and is properly structured
+            $pembatalanCheck = $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'data_pembatalan'")->fetchColumn();
+            if ($pembatalanCheck > 0) {
+                echo "<div class='success'>✅ data_pembatalan table created successfully</div>";
+                
+                // Test admin_pembatalan.php compatibility
+                try {
+                    $testQuery = $pdo->prepare("SELECT COUNT(*) FROM data_pembatalan p JOIN data_jamaah j ON p.nik = j.nik");
+                    $testQuery->execute();
+                    echo "<div class='success'>✅ admin_pembatalan.php JOIN query compatibility verified</div>";
+                } catch (Exception $e) {
+                    echo "<div class='warning'>⚠️ admin_pembatalan.php JOIN test: " . htmlspecialchars($e->getMessage()) . "</div>";
+                }
+            }
             
             echo "<div class='info'>🎉 Your database is now ready! You can test your application.</div>";
             
         } catch (PDOException $e) {
             echo "<div class='error'>❌ Database error: " . htmlspecialchars($e->getMessage()) . "</div>";
             echo "<div class='info'>📋 This error might occur if tables already exist or there's a connection issue.</div>";
+        } catch (Exception $e) {
+            echo "<div class='error'>❌ Error: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
         ?>
         
