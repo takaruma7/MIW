@@ -7,10 +7,48 @@ if (!file_exists(__DIR__ . '/error_logs')) {
     mkdir(__DIR__ . '/error_logs', 0755, true);
 }
 
+// Enhanced error logging function
+function logDetailedError($message, $context = []) {
+    $timestamp = date('Y-m-d H:i:s');
+    $logFile = __DIR__ . '/error_logs/confirm_payment_' . date('Y-m-d') . '.log';
+    
+    $logEntry = "[{$timestamp}] CONFIRM_PAYMENT ERROR: {$message}\n";
+    
+    if (!empty($context)) {
+        $logEntry .= "[{$timestamp}] CONTEXT: " . json_encode($context, JSON_PRETTY_PRINT) . "\n";
+    }
+    
+    $logEntry .= "[{$timestamp}] SERVER INFO: " . json_encode([
+        'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'] ?? 'Unknown',
+        'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? 'Unknown',
+        'HTTP_HOST' => $_SERVER['HTTP_HOST'] ?? 'Unknown',
+        'USER_AGENT' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
+        'POST_DATA' => !empty($_POST) ? array_keys($_POST) : 'None',
+        'FILES_DATA' => !empty($_FILES) ? array_keys($_FILES) : 'None',
+        'MEMORY_USAGE' => memory_get_usage(true),
+        'PEAK_MEMORY' => memory_get_peak_usage(true)
+    ], JSON_PRETTY_PRINT) . "\n";
+    
+    $logEntry .= str_repeat('-', 80) . "\n";
+    
+    file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+    error_log($message); // Also log to PHP error log
+}
+
+// Log script start
+logDetailedError("Script started", [
+    'method' => $_SERVER['REQUEST_METHOD'] ?? 'Unknown',
+    'post_fields' => !empty($_POST) ? array_keys($_POST) : [],
+    'files' => !empty($_FILES) ? array_keys($_FILES) : []
+]);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    logDetailedError("POST request received", ['post_data' => $_POST, 'files' => array_keys($_FILES)]);
+    
     try {
         // Start transaction
         $conn->beginTransaction();
+        logDetailedError("Database transaction started");
 
         // Validate required fields
         $requiredFields = ['nik', 'transfer_account_name', 'nama', 'program_pilihan'];
@@ -19,11 +57,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Missing required field: $field");
             }
         }
+        logDetailedError("Required fields validation passed");
 
         // Validate file upload
         if (!isset($_FILES['payment_path']) || $_FILES['payment_path']['error'] !== UPLOAD_ERR_OK) {
+            logDetailedError("File upload validation failed", [
+                'files_isset' => isset($_FILES['payment_path']),
+                'upload_error' => $_FILES['payment_path']['error'] ?? 'File not set',
+                'upload_error_message' => $_FILES['payment_path']['error'] ?? 'No error info'
+            ]);
             throw new Exception("Payment proof file is required");
         }
+        logDetailedError("File upload validation passed");
 
         // Get current timestamp for payment records
         $currentDateTime = new DateTime();
@@ -47,15 +92,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle file upload
         require_once 'upload_handler.php';
+        logDetailedError("Upload handler loaded");
+        
         $uploadHandler = new UploadHandler();
         $customName = $uploadHandler->generateCustomFilename($_POST['nik'], 'payment', null);
+        logDetailedError("Custom filename generated", ['filename' => $customName]);
+        
         $uploadResult = $uploadHandler->handleUpload($_FILES['payment_path'], 'payments', $customName);
         
         if (!$uploadResult) {
-            throw new Exception('Failed to upload payment proof: ' . implode(', ', $uploadHandler->getErrors()));
+            $errors = $uploadHandler->getErrors();
+            logDetailedError("Upload failed", ['errors' => $errors]);
+            throw new Exception('Failed to upload payment proof: ' . implode(', ', $errors));
         }
+        logDetailedError("File upload successful", ['result' => $uploadResult]);
 
         // Update jamaah record with payment details
+        logDetailedError("Updating jamaah record", [
+            'nik' => $_POST['nik'],
+            'payment_path' => $uploadResult['path']
+        ]);
+        
         $stmt = $conn->prepare("UPDATE data_jamaah SET 
             transfer_account_name = :transfer_account_name,
             payment_time = :payment_time,
@@ -64,13 +121,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             payment_path = :payment_path
             WHERE nik = :nik");
 
-        $stmt->execute([
+        $updateResult = $stmt->execute([
             'transfer_account_name' => $_POST['transfer_account_name'],
             'payment_time' => $currentTime,
             'payment_date' => $currentDate,
             'payment_path' => $uploadResult['path'],
             'nik' => $_POST['nik']
         ]);
+        
+        if (!$updateResult) {
+            logDetailedError("Database update failed", ['error_info' => $stmt->errorInfo()]);
+            throw new Exception("Failed to update payment information");
+        }
+        logDetailedError("Database update successful", ['affected_rows' => $stmt->rowCount()]);
 
         // Fetch package details for email
         $stmt = $conn->prepare("SELECT j.*, p.program_pilihan, p.tanggal_keberangkatan,
@@ -132,13 +195,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } catch (Exception $e) {
         $conn->rollBack();
-        error_log("Payment confirmation error: " . $e->getMessage());
+        logDetailedError("Exception caught in confirm_payment.php", [
+            'error_message' => $e->getMessage(),
+            'error_file' => $e->getFile(),
+            'error_line' => $e->getLine(),
+            'stack_trace' => $e->getTraceAsString()
+        ]);
         
         // Store error in session and redirect back to invoice
         $_SESSION['payment_error'] = $e->getMessage();
         header('Location: invoice.php');
         exit();
     }
+} else {
+    logDetailedError("Non-POST request received", [
+        'method' => $_SERVER['REQUEST_METHOD'] ?? 'Unknown',
+        'query_string' => $_SERVER['QUERY_STRING'] ?? 'None'
+    ]);
 }
 
 // If we get here without POST data, redirect to homepage
