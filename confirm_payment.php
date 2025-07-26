@@ -59,16 +59,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         logDetailedError("Required fields validation passed");
 
-        // Validate file upload
-        if (!isset($_FILES['payment_path']) || $_FILES['payment_path']['error'] !== UPLOAD_ERR_OK) {
-            logDetailedError("File upload validation failed", [
-                'files_isset' => isset($_FILES['payment_path']),
-                'upload_error' => $_FILES['payment_path']['error'] ?? 'File not set',
-                'upload_error_message' => $_FILES['payment_path']['error'] ?? 'No error info'
+        // Validate file upload with detailed error reporting
+        if (!isset($_FILES['payment_path'])) {
+            logDetailedError("File upload validation failed - No file in request", [
+                'files_available' => array_keys($_FILES),
+                'post_max_size' => ini_get('post_max_size'),
+                'upload_max_filesize' => ini_get('upload_max_filesize')
             ]);
-            throw new Exception("Payment proof file is required");
+            throw new Exception("Payment proof file is required - no file uploaded");
         }
-        logDetailedError("File upload validation passed");
+        
+        $uploadError = $_FILES['payment_path']['error'];
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize (' . ini_get('upload_max_filesize') . ')',
+                UPLOAD_ERR_FORM_SIZE => 'File exceeds form MAX_FILE_SIZE',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
+            ];
+            
+            $errorMessage = $errorMessages[$uploadError] ?? "Unknown upload error ($uploadError)";
+            logDetailedError("File upload validation failed", [
+                'upload_error_code' => $uploadError,
+                'upload_error_message' => $errorMessage,
+                'file_size' => $_FILES['payment_path']['size'] ?? 'Unknown',
+                'file_name' => $_FILES['payment_path']['name'] ?? 'Unknown',
+                'file_type' => $_FILES['payment_path']['type'] ?? 'Unknown'
+            ]);
+            throw new Exception("Payment proof file upload error: $errorMessage");
+        }
+        logDetailedError("File upload validation passed", [
+            'file_name' => $_FILES['payment_path']['name'],
+            'file_size' => $_FILES['payment_path']['size'],
+            'file_type' => $_FILES['payment_path']['type']
+        ]);
 
         // Get current timestamp for payment records
         $currentDateTime = new DateTime();
@@ -90,22 +117,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("File size exceeds 2MB limit");
         }
 
-        // Handle file upload
+        // Handle file upload with enhanced error handling
         require_once 'upload_handler.php';
         logDetailedError("Upload handler loaded");
         
-        $uploadHandler = new UploadHandler();
-        $customName = $uploadHandler->generateCustomFilename($_POST['nik'], 'payment', null);
-        logDetailedError("Custom filename generated", ['filename' => $customName]);
-        
-        $uploadResult = $uploadHandler->handleUpload($_FILES['payment_path'], 'payments', $customName);
-        
-        if (!$uploadResult) {
-            $errors = $uploadHandler->getErrors();
-            logDetailedError("Upload failed", ['errors' => $errors]);
-            throw new Exception('Failed to upload payment proof: ' . implode(', ', $errors));
+        try {
+            $uploadHandler = new UploadHandler();
+            logDetailedError("UploadHandler instantiated successfully");
+        } catch (Exception $e) {
+            logDetailedError("Failed to create UploadHandler", [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            throw new Exception("Upload system error: " . $e->getMessage());
         }
-        logDetailedError("File upload successful", ['result' => $uploadResult]);
+        
+        try {
+            $customName = $uploadHandler->generateCustomFilename($_POST['nik'], 'payment', null);
+            logDetailedError("Custom filename generated", ['filename' => $customName]);
+        } catch (Exception $e) {
+            logDetailedError("Failed to generate filename", [
+                'error' => $e->getMessage(),
+                'nik' => $_POST['nik']
+            ]);
+            throw new Exception("Filename generation error: " . $e->getMessage());
+        }
+        
+        try {
+            $uploadResult = $uploadHandler->handleUpload($_FILES['payment_path'], 'payments', $customName);
+            
+            if (!$uploadResult) {
+                $errors = $uploadHandler->getErrors();
+                logDetailedError("Upload failed", ['errors' => $errors]);
+                throw new Exception('Failed to upload payment proof: ' . implode(', ', $errors));
+            }
+            logDetailedError("File upload successful", ['result' => $uploadResult]);
+        } catch (Exception $e) {
+            logDetailedError("Upload handler exception", [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'upload_handler_errors' => $uploadHandler->getErrors()
+            ]);
+            throw new Exception("File upload failed: " . $e->getMessage());
+        }
 
         // Update jamaah record with payment details
         logDetailedError("Updating jamaah record", [
@@ -113,41 +169,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'payment_path' => $uploadResult['path']
         ]);
         
-        $stmt = $conn->prepare("UPDATE data_jamaah SET 
-            transfer_account_name = :transfer_account_name,
-            payment_time = :payment_time,
-            payment_date = :payment_date,
-            payment_status = 'pending',
-            payment_path = :payment_path
-            WHERE nik = :nik");
+        try {
+            $stmt = $conn->prepare("UPDATE data_jamaah SET 
+                transfer_account_name = :transfer_account_name,
+                payment_time = :payment_time,
+                payment_date = :payment_date,
+                payment_status = 'pending',
+                payment_path = :payment_path
+                WHERE nik = :nik");
 
-        $updateResult = $stmt->execute([
-            'transfer_account_name' => $_POST['transfer_account_name'],
-            'payment_time' => $currentTime,
-            'payment_date' => $currentDate,
-            'payment_path' => $uploadResult['path'],
-            'nik' => $_POST['nik']
-        ]);
-        
-        if (!$updateResult) {
-            logDetailedError("Database update failed", ['error_info' => $stmt->errorInfo()]);
-            throw new Exception("Failed to update payment information");
+            $updateResult = $stmt->execute([
+                'transfer_account_name' => $_POST['transfer_account_name'],
+                'payment_time' => $currentTime,
+                'payment_date' => $currentDate,
+                'payment_path' => $uploadResult['path'],
+                'nik' => $_POST['nik']
+            ]);
+            
+            if (!$updateResult) {
+                logDetailedError("Database update failed", [
+                    'error_info' => $stmt->errorInfo(),
+                    'sql_state' => $stmt->errorCode()
+                ]);
+                throw new Exception("Failed to update payment information: " . implode(', ', $stmt->errorInfo()));
+            }
+            
+            $affectedRows = $stmt->rowCount();
+            if ($affectedRows === 0) {
+                logDetailedError("No rows affected by update", ['nik' => $_POST['nik']]);
+                throw new Exception("No jamaah record found with NIK: " . $_POST['nik']);
+            }
+            
+            logDetailedError("Database update successful", ['affected_rows' => $affectedRows]);
+        } catch (PDOException $e) {
+            logDetailedError("PDO Exception during update", [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            throw new Exception("Database error: " . $e->getMessage());
         }
-        logDetailedError("Database update successful", ['affected_rows' => $stmt->rowCount()]);
 
         // Fetch package details for email
-        $stmt = $conn->prepare("SELECT j.*, p.program_pilihan, p.tanggal_keberangkatan,
-            CASE j.type_room_pilihan
-                WHEN 'Quad' THEN p.base_price_quad
-                WHEN 'Triple' THEN p.base_price_triple
-                WHEN 'Double' THEN p.base_price_double
-            END as biaya_paket,
-            p.currency
-            FROM data_jamaah j
-            JOIN data_paket p ON j.pak_id = p.pak_id
-            WHERE j.nik = :nik");
-        $stmt->execute(['nik' => $_POST['nik']]);
-        $jamaahData = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $conn->prepare("SELECT j.*, p.program_pilihan, p.tanggal_keberangkatan,
+                CASE j.type_room_pilihan
+                    WHEN 'Quad' THEN p.base_price_quad
+                    WHEN 'Triple' THEN p.base_price_triple
+                    WHEN 'Double' THEN p.base_price_double
+                END as biaya_paket,
+                p.currency
+                FROM data_jamaah j
+                JOIN data_paket p ON j.pak_id = p.pak_id
+                WHERE j.nik = :nik");
+            $stmt->execute(['nik' => $_POST['nik']]);
+            $jamaahData = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$jamaahData) {
+                logDetailedError("Jamaah data not found", ['nik' => $_POST['nik']]);
+                throw new Exception("Jamaah record not found for NIK: " . $_POST['nik']);
+            }
+            
+            logDetailedError("Jamaah data fetched successfully", [
+                'program' => $jamaahData['program_pilihan'],
+                'currency' => $jamaahData['currency']
+            ]);
+        } catch (PDOException $e) {
+            logDetailedError("PDO Exception during jamaah data fetch", [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            throw new Exception("Database error while fetching jamaah data: " . $e->getMessage());
+        }
         
         // Prepare email data with complete details
         $paymentData = [
