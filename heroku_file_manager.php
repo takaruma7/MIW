@@ -125,7 +125,7 @@ class HerokuFileManager {
                 $fileInfo['name'],
                 $fileInfo['size'],
                 $fileInfo['type'],
-                $this->isHeroku ? 1 : 0
+                $this->isHeroku() ? 1 : 0
             ]);
             
         } catch (Exception $e) {
@@ -173,7 +173,7 @@ class HerokuFileManager {
      * Generate a warning message for Heroku
      */
     public function getHerokuWarning() {
-        if ($this->isHeroku) {
+        if ($this->isHeroku()) {
             return [
                 'warning' => true,
                 'message' => 'Files on Heroku are temporary and will be deleted during dyno restarts. For production, implement cloud storage (AWS S3, Cloudinary, etc.)',
@@ -184,10 +184,17 @@ class HerokuFileManager {
     }
     
     /**
+     * Check if running on Heroku
+     */
+    public function isHeroku() {
+        return $this->isHeroku;
+    }
+    
+    /**
      * Clean up old files (for Heroku temporary storage)
      */
     public function cleanupOldFiles($daysOld = 1) {
-        if (!$this->isHeroku) return;
+        if (!$this->isHeroku()) return;
         
         $directories = ['documents', 'payments', 'cancellations'];
         $cutoffTime = time() - ($daysOld * 24 * 60 * 60);
@@ -230,7 +237,7 @@ class HerokuFileHandler {
             // Check database for file info
             $fileInfo = $this->fileManager->getFileInfo($cleanFilename, $type);
             
-            if ($fileInfo && $this->fileManager->isHeroku) {
+            if ($fileInfo && $this->fileManager->isHeroku()) {
                 // Return Heroku-specific error
                 header('HTTP/1.0 404 Not Found');
                 echo json_encode([
