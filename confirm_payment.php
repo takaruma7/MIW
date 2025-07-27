@@ -213,89 +213,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Fetch package details for email
         try {
-            // First check if we have pak_id from the form
-            $pak_id = null;
-            if (isset($_POST['pak_id']) && !empty($_POST['pak_id'])) {
-                $pak_id = $_POST['pak_id'];
-                logDetailedError("Using pak_id from form", ['pak_id' => $pak_id]);
-            }
-            
-            // If we have pak_id, use it to get the full data
-            if ($pak_id) {
-                $stmt = $conn->prepare("SELECT j.*, p.program_pilihan, p.tanggal_keberangkatan,
-                    CASE j.type_room_pilihan
-                        WHEN 'Quad' THEN p.base_price_quad
-                        WHEN 'Triple' THEN p.base_price_triple
-                        WHEN 'Double' THEN p.base_price_double
-                    END as biaya_paket,
-                    p.currency
-                    FROM data_jamaah j
-                    LEFT JOIN data_paket p ON j.pak_id = p.pak_id
-                    WHERE j.nik = :nik");
-                $stmt->execute(['nik' => $_POST['nik']]);
-                $jamaahData = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                // If we don't get package data from jamaah record, get it from the form pak_id
-                if (!$jamaahData || !$jamaahData['program_pilihan']) {
-                    logDetailedError("No jamaah package data found, using form pak_id", ['pak_id' => $pak_id]);
-                    
-                    // Get package data separately
-                    $stmt = $conn->prepare("SELECT * FROM data_paket WHERE pak_id = :pak_id");
-                    $stmt->execute(['pak_id' => $pak_id]);
-                    $packageData = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    if ($packageData) {
-                        // Get jamaah data without package join
-                        $stmt = $conn->prepare("SELECT * FROM data_jamaah WHERE nik = :nik");
-                        $stmt->execute(['nik' => $_POST['nik']]);
-                        $jamaahData = $stmt->fetch(PDO::FETCH_ASSOC);
-                        
-                        if ($jamaahData) {
-                            // Merge package data into jamaah data
-                            $jamaahData['program_pilihan'] = $packageData['program_pilihan'];
-                            $jamaahData['tanggal_keberangkatan'] = $packageData['tanggal_keberangkatan'];
-                            $jamaahData['currency'] = $packageData['currency'];
-                            
-                            // Calculate price based on room type
-                            $priceColumn = 'base_price_' . strtolower($jamaahData['type_room_pilihan'] ?? 'quad');
-                            $jamaahData['biaya_paket'] = $packageData[$priceColumn] ?? $packageData['base_price_quad'];
-                            
-                            logDetailedError("Merged package data with jamaah data", [
-                                'program' => $jamaahData['program_pilihan'],
-                                'currency' => $jamaahData['currency']
-                            ]);
-                        }
-                    }
-                }
-            } else {
-                // Fallback: try to get jamaah data without package info
-                logDetailedError("No pak_id available, getting jamaah data only");
-                $stmt = $conn->prepare("SELECT * FROM data_jamaah WHERE nik = :nik");
-                $stmt->execute(['nik' => $_POST['nik']]);
-                $jamaahData = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if ($jamaahData) {
-                    // Use form data for missing package information
-                    $jamaahData['program_pilihan'] = $_POST['program_pilihan'] ?? 'Unknown Program';
-                    $jamaahData['tanggal_keberangkatan'] = $_POST['tanggal_keberangkatan'] ?? date('Y-m-d');
-                    $jamaahData['currency'] = 'USD'; // Default currency
-                    $jamaahData['biaya_paket'] = $_POST['payment_total'] ?? 0;
-                    
-                    logDetailedError("Using form data for package information", [
-                        'program' => $jamaahData['program_pilihan'],
-                        'currency' => $jamaahData['currency']
-                    ]);
-                }
-            }
+            $stmt = $conn->prepare("SELECT j.*, p.program_pilihan, p.tanggal_keberangkatan,
+                CASE j.type_room_pilihan
+                    WHEN 'Quad' THEN p.base_price_quad
+                    WHEN 'Triple' THEN p.base_price_triple
+                    WHEN 'Double' THEN p.base_price_double
+                END as biaya_paket,
+                p.currency
+                FROM data_jamaah j
+                JOIN data_paket p ON j.pak_id = p.pak_id
+                WHERE j.nik = :nik");
+            $stmt->execute(['nik' => $_POST['nik']]);
+            $jamaahData = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$jamaahData) {
                 logDetailedError("Jamaah data not found", ['nik' => $_POST['nik']]);
                 throw new Exception("Jamaah record not found for NIK: " . $_POST['nik']);
             }
             
-            logDetailedError("Jamaah data processed successfully", [
-                'program' => $jamaahData['program_pilihan'] ?? 'Unknown',
-                'currency' => $jamaahData['currency'] ?? 'Unknown'
+            logDetailedError("Jamaah data fetched successfully", [
+                'program' => $jamaahData['program_pilihan'],
+                'currency' => $jamaahData['currency']
             ]);
         } catch (PDOException $e) {
             logDetailedError("PDO Exception during jamaah data fetch", [
@@ -309,24 +247,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $paymentData = [
             'nama' => $_POST['nama'],
             'nik' => $_POST['nik'],
-            'no_telp' => $jamaahData['no_telp'] ?? $_POST['no_telp'] ?? '',
-            'email' => $jamaahData['email'] ?? $_POST['email'] ?? '',
-            'program_pilihan' => $jamaahData['program_pilihan'] ?? $_POST['program_pilihan'] ?? 'Unknown Program',
-            'tanggal_keberangkatan' => $jamaahData['tanggal_keberangkatan'] ?? $_POST['tanggal_keberangkatan'] ?? date('Y-m-d'),
-            'biaya_paket' => $jamaahData['biaya_paket'] ?? $_POST['payment_total'] ?? 0,
-            'type_room_pilihan' => $_POST['type_room_pilihan'] ?? $jamaahData['type_room_pilihan'] ?? 'Quad',
+            'no_telp' => $jamaahData['no_telp'],
+            'email' => $jamaahData['email'],
+            'program_pilihan' => $jamaahData['program_pilihan'],
+            'tanggal_keberangkatan' => $jamaahData['tanggal_keberangkatan'],
+            'biaya_paket' => $jamaahData['biaya_paket'],
+            'type_room_pilihan' => $_POST['type_room_pilihan'],
             'transfer_account_name' => $_POST['transfer_account_name'],
             'payment_time' => $currentTime,
             'payment_date' => $currentDate,
             'payment_type' => $_POST['payment_type'] ?? '',
             'payment_method' => $_POST['payment_method'] ?? '',
-            'currency' => $jamaahData['currency'] ?? 'USD'
+            'currency' => $jamaahData['currency']
         ];
-
-        logDetailedError("Payment data prepared for email", [
-            'email' => $paymentData['email'],
-            'program' => $paymentData['program_pilihan']
-        ]);
 
         // Determine registration type from program_pilihan
         $registrationType = (stripos($_POST['program_pilihan'], 'haji') !== false) ? 'Haji' : 'Umroh';
