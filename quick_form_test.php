@@ -4,8 +4,8 @@
  * Tests actual form submission with timeout monitoring
  */
 
-set_time_limit(30);
-ini_set('max_execution_time', 30);
+set_time_limit(20); // 20 seconds max
+ini_set('max_execution_time', 20);
 
 require_once 'config.php';
 

@@ -4,7 +4,8 @@
  * Confirms that the deployed fixes are working correctly
  */
 
-set_time_limit(10);
+set_time_limit(20); // 20 seconds max
+ini_set('max_execution_time', 20);
 echo "🔍 Production Fix Verification Test\n";
 echo "=====================================\n\n";
 

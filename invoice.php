@@ -230,7 +230,6 @@ try {
             <input type="hidden" name="email" value="<?= $viewData['email'] ?>">
             <input type="hidden" name="type_room_pilihan" value="<?= $viewData['type_room_pilihan'] ?>">
             <input type="hidden" name="tanggal_keberangkatan" value="<?= $viewData['tanggal_keberangkatan'] ?>">
-            <input type="hidden" name="pak_id" value="<?= $filteredInput['pak_id'] ?>">
             
             <div class="section">
                 <div class="section-title">Informasi Transfer</div>

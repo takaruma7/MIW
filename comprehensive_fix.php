@@ -1,5 +1,7 @@
 <?php
 // Comprehensive Database and File System Fix for Heroku Deployment
+set_time_limit(20); // 20 seconds max
+ini_set('max_execution_time', 20);
 require_once 'config.php';
 
 echo "<!DOCTYPE html><html><head><title>MIW System Fix</title></head><body>";
