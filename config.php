@@ -78,6 +78,12 @@ function loadHerokuConfig() {
     define('SMTP_PASSWORD', $_ENV['SMTP_PASSWORD'] ?? getenv('SMTP_PASSWORD') ?? '');
     define('SMTP_ENCRYPTION', $_ENV['SMTP_ENCRYPTION'] ?? getenv('SMTP_ENCRYPTION') ?? 'tls');
     
+    // Email functionality settings
+    define('EMAIL_ENABLED', true);
+    define('EMAIL_FROM', SMTP_USERNAME);
+    define('EMAIL_FROM_NAME', 'MIW Travel');
+    define('ADMIN_EMAIL', SMTP_USERNAME);
+    
     // Performance settings
     define('MAX_FILE_SIZE', $_ENV['MAX_FILE_SIZE'] ?? getenv('MAX_FILE_SIZE') ?? '10M');
     define('MAX_EXECUTION_TIME', $_ENV['MAX_EXECUTION_TIME'] ?? getenv('MAX_EXECUTION_TIME') ?? 300);
@@ -126,6 +132,12 @@ function loadRenderConfig() {
     define('SMTP_PASSWORD', $_ENV['SMTP_PASSWORD'] ?? '');
     define('SMTP_ENCRYPTION', $_ENV['SMTP_ENCRYPTION'] ?? 'tls');
     
+    // Email functionality settings
+    define('EMAIL_ENABLED', true);
+    define('EMAIL_FROM', SMTP_USERNAME);
+    define('EMAIL_FROM_NAME', 'MIW Travel');
+    define('ADMIN_EMAIL', SMTP_USERNAME);
+    
     define('MAX_FILE_SIZE', $_ENV['MAX_FILE_SIZE'] ?? '10M');
     define('MAX_EXECUTION_TIME', $_ENV['MAX_EXECUTION_TIME'] ?? 300);
     
@@ -171,6 +183,12 @@ function loadRailwayConfig() {
     define('SMTP_PASSWORD', $_ENV['SMTP_PASSWORD'] ?? '');
     define('SMTP_ENCRYPTION', $_ENV['SMTP_ENCRYPTION'] ?? 'tls');
     
+    // Email functionality settings
+    define('EMAIL_ENABLED', true);
+    define('EMAIL_FROM', SMTP_USERNAME);
+    define('EMAIL_FROM_NAME', 'MIW Travel');
+    define('ADMIN_EMAIL', SMTP_USERNAME);
+    
     define('MAX_FILE_SIZE', $_ENV['MAX_FILE_SIZE'] ?? '10M');
     define('MAX_EXECUTION_TIME', $_ENV['MAX_EXECUTION_TIME'] ?? 300);
     
@@ -199,6 +217,12 @@ function loadLocalConfig() {
     define('SMTP_USERNAME', '');
     define('SMTP_PASSWORD', '');
     define('SMTP_ENCRYPTION', 'tls');
+    
+    // Email functionality settings
+    define('EMAIL_ENABLED', false); // Disabled for local testing
+    define('EMAIL_FROM', '');
+    define('EMAIL_FROM_NAME', 'MIW Travel');
+    define('ADMIN_EMAIL', '');
     
     define('MAX_FILE_SIZE', '50M');
     define('MAX_EXECUTION_TIME', 0); // No limit for local
